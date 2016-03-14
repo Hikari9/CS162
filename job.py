@@ -23,7 +23,7 @@ class Job(object):
 
 	def end(self):
 		return self.arrival + self.duration
-		
+
 	'''
 	@brief {derives the endint time of the job}
 	
@@ -38,7 +38,7 @@ def first_come_first_serve(job):
 	return (job.arrival, job.id)
 
 def shortest_job_first(job):
-	return (job.duration + job.arrival, job.duration, job.id)
+	return (job.arrival + job.duration, job.duration, job.id)
 
 def shortest_remaining_time_first(job):
 	return (job.arrival, job.arrival + job.duration, job.id)
