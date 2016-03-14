@@ -73,6 +73,8 @@ def get_ready_queue(job_list, pattern, time_quantum):
 					job_id    = job.id,
 					terminate = job.terminate
 				)
+				# print interrupt, 'wants to interrupt', split_job
+				# print job_key(interrupt), job_key(split_job)
 				
 				if job_key(interrupt) < job_key(split_job):
 					# job has been interrupted! split then repush into the queue

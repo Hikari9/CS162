@@ -31,17 +31,17 @@ class Job(object):
 	@return {int}
 	'''
 
-	# def __str__(self):
-		# return '(id=%d arrival=%d, duration=%d terminate=%d)' % (self.id, self.arrival, self.duration, self.terminate)
+	def __str__(self):
+		return '(id=%d arrival=%d, duration=%d terminate=%d)' % (self.id, self.arrival, self.duration, self.terminate)
 
 def first_come_first_serve(job):
 	return (job.arrival, job.id)
 
 def shortest_job_first(job):
-	return (job.arrival + job.duration, job.duration, job.id)
+	return (job.arrival, job.duration, job.id)
 
-def shortest_remaining_time_first(job):
-	return (job.arrival, job.arrival + job.duration, job.id)
+def shortest_remaining_time_first(job): # same as SJF, but is pre-emptive
+	return (job.arrival, job.duration, job.id)
 
 def priority(job):
 	return (job.arrival, job.priority, job.id)
