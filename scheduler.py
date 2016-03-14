@@ -1,7 +1,7 @@
 from job import *
 from pqueue import PriorityQueue
 
-def get_ready_queue(job_list, pattern='FCFS', time_quantum=0):
+def get_ready_queue(job_list, pattern, time_quantum):
 	
 	# obtain job key function as key for priority queue comparison
 	job_key = job_keys[pattern]

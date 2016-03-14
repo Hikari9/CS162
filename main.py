@@ -1,4 +1,5 @@
 from job import Job
+from scheduler import get_ready_queue
 
 # input the number of test cases
 T = int(raw_input())
@@ -27,6 +28,6 @@ for tc in xrange(1, T + 1):
 	# get the ready queue
 	print tc
 
-	from scheduler import get_ready_queue
-	for job in get_ready_queue(job_list, pattern):
+	ready_queue = get_ready_queue(job_list, pattern, time_quantum)
+	for job in ready_queue:
 		print '%d %d %d' % (job.arrival, job.id, job.duration) + ('X' if job.terminate else '')
