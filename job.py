@@ -7,8 +7,9 @@ class Job(object):
 		self.priority = priority
 		self.id = job_id
 		self.terminate = terminate
-		self.instance_id = Job.instance_id
-		Job.instance_id += 1
+		self.instance_id = 0
+		global last_index
+		self.idd = last_index[job_id] if job_id in last_index else -1
 
 	'''
 	@brief {the constructor}
@@ -35,7 +36,7 @@ class Job(object):
 		return '(id=%d arrival=%d, duration=%d terminate=%d)' % (self.id, self.arrival, self.duration, self.terminate)
 
 def first_come_first_serve(job):
-	return (job.arrival, job.instance_id, job.id)
+	return (job.arrival, job.priority, job.id)
 
 def shortest_job_first(job):
 	return (job.arrival, job.duration, job.id)
@@ -46,8 +47,10 @@ def shortest_remaining_time_first(job): # same as SJF, but is pre-emptive
 def priority(job):
 	return (job.arrival, job.priority, job.id)
 
+last_index = {}
+	
 def round_robin(job):
-	return (job.arrival, job.instance_id)
+	return (job.arrival, job.idd, job.priority, job.id)
 
 def pre_emptive(job_key):
 	return job_key in [priority, shortest_remaining_time_first]

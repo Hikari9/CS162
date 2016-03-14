@@ -17,6 +17,8 @@ for tc in xrange(1, T + 1):
 	# add jobs to the list
 	for i in xrange(int(num_jobs)):
 		A, B, P = map(int, str(raw_input()).split(' '))
+		if pattern != 'P':
+			P = A #make priority the arrival time for FCFS
 		job = Job(
 			arrival = A,
 			duration = B,
