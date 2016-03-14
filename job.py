@@ -35,7 +35,7 @@ class Job(object):
 		return '(id=%d arrival=%d, duration=%d terminate=%d)' % (self.id, self.arrival, self.duration, self.terminate)
 
 def first_come_first_serve(job):
-	return (job.arrival, job.id)
+	return (job.arrival, job.instance_id, job.id)
 
 def shortest_job_first(job):
 	return (job.arrival, job.duration, job.id)

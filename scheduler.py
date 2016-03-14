@@ -2,7 +2,7 @@ from job import *
 from pqueue import PriorityQueue
 
 def get_ready_queue(job_list, pattern, time_quantum):
-	
+
 	# obtain job key function as key for priority queue comparison
 	job_key = job_keys[pattern]
 
@@ -35,6 +35,8 @@ def get_ready_queue(job_list, pattern, time_quantum):
 		job = job_queue.pop()
 		if job.arrival < time_elapsed: # this job will arrive later, repush to the queue
 			job.arrival = time_elapsed
+			job.instance_id = Job.instance_id
+			Job.instance_id += 1
 			job_queue.push(job)
 
 		elif job_key == round_robin and job.duration > time_quantum:
