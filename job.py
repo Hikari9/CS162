@@ -1,4 +1,5 @@
 class Job(object):
+
 	instance_id = 1
 	def __init__(self, arrival, duration, priority, job_id, terminate=True):
 		self.arrival = arrival
@@ -9,10 +10,29 @@ class Job(object):
 		self.instance_id = Job.instance_id
 		Job.instance_id += 1
 
+	'''
+	@brief {the constructor}
+	
+	@param 	self		{Job}
+	@param 	arrival 	{int} 	the arrival time of the job
+	@param 	duration 	{int} 	the job duration
+	@param 	priority 	{int} 	the priority of the job used for priority scheduling
+	@param 	job_id 		{int} 	the id of the job
+	@param 	terminate 	{bool} 	describes if the job is a terminal task or not
+	'''
+
 	def end(self):
 		return self.arrival + self.duration
-	def __str__(self):
-		return '(id=%d arrival=%d, duration=%d terminate=%d)' % (self.id, self.arrival, self.duration, self.terminate)
+		
+	'''
+	@brief {derives the endint time of the job}
+	
+	@param self {Job}
+	@return {int}
+	'''
+
+	# def __str__(self):
+		# return '(id=%d arrival=%d, duration=%d terminate=%d)' % (self.id, self.arrival, self.duration, self.terminate)
 
 def first_come_first_serve(job):
 	return (job.arrival, job.id)

@@ -11,6 +11,7 @@ def get_ready_queue(job_list, pattern='FCFS', time_quantum=0):
 
 	# prepare the ready queue
 	ready_queue = []
+	global time_elapsed
 	time_elapsed = 0
 
 	def schedule(job):
@@ -24,6 +25,7 @@ def get_ready_queue(job_list, pattern='FCFS', time_quantum=0):
 			# append new job
 			ready_queue.append(job)
 		# update time elapsed after scheduling
+		global time_elapsed
 		time_elapsed = ready_queue[-1].end()
 
 	# simulate scheduling algorithm
@@ -31,7 +33,6 @@ def get_ready_queue(job_list, pattern='FCFS', time_quantum=0):
 
 		# get the next job
 		job = job_queue.pop()
-
 		if job.arrival < time_elapsed: # this job will arrive later, repush to the queue
 			job.arrival = time_elapsed
 			job_queue.push(job)
@@ -56,14 +57,14 @@ def get_ready_queue(job_list, pattern='FCFS', time_quantum=0):
 			schedule(job)
 
 		else: # pre_emptive
-			# special case: find possible jobs that can interrupt
 
+			# special case: find possible jobs that can interrupt
 			put_back = []
 			interrupted = False
 
 			while job_queue and job_queue.top().arrival < job.end():
-				# check if the next job is better than having the other end of the current job
 				
+				# check if the next job is better than having the other end of the current job
 				interrupt = job_queue.top()
 				split_job = Job(
 					arrival   = interrupt.arrival,
