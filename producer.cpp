@@ -22,6 +22,7 @@ int main(int argc, char* args[]) {
 	// get arguments
 	char* file = args[1];
 	int bytes = atoi(args[2]);
+	int sleepTime = argc > 3 ? atoi(args[3]) : 1000;
 
 	// read text file
 	string buffer, line;
@@ -91,7 +92,7 @@ int main(int argc, char* args[]) {
 			puts("No more food to give. Sending an exit signal.");
 			break;
 		}
-		sleep(5);
+		usleep(sleepTime * 1000);
 	}
 
 	return 0;

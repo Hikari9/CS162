@@ -22,6 +22,7 @@ int main(int argc, char* args[]) {
 	// get arguments
 	char* file = args[1];
 	int bytes = atoi(args[2]);
+	int sleepTime = argc > 3 ? atoi(args[3]) : 1000;
 
 	// file stream
 	ofstream fout(file);
@@ -43,7 +44,7 @@ int main(int argc, char* args[]) {
 			feeding.write(IDLE);
 			access.signal();
 
-			fout << buffer << endl;
+			fout << buffer << flush;
 			printf("FOOD!!! Eats (%s)\n", buffer.c_str());
 		}
 
@@ -58,7 +59,7 @@ int main(int argc, char* args[]) {
 			printf("Producer has no more food. Quitting huhu.\n");
 			break;
 		}
-		sleep(4);
+		usleep(sleepTime * 1000);
 	}
 
 	return 0;

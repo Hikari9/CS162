@@ -10,12 +10,6 @@
 #include <sys/shm.h>
 #include <unistd.h>
 
-#include <iostream>
-using namespace std;
-
-const sembuf WAIT[2] = {{0, 0, SEM_UNDO}, {0, 1, SEM_UNDO | IPC_NOWAIT}};
-const sembuf SIGNAL[1] = {{0, -1, SEM_UNDO | IPC_NOWAIT}};
-
 template <class type>
 class memory {
 private:
