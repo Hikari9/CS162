@@ -35,17 +35,21 @@ int main(int argc, char* args[]) {
 	printf("Preparing for consumption...\n");\
 	enum {IDLE, FEEDING, EXIT};
 
+	// have a buffer for reading
+	char buffer[bytes + 1];
+	buffer[bytes] = '\0';
+
 	// main loop
 	while (true) {
 		access.wait();
 		if (feeding.read() == FEEDING) {
 			// there's food for consumer
-			string buffer = food.data();
+			memcpy(buffer, food.data(), bytes);
 			feeding.write(IDLE);
 			access.signal();
 
-			fout << buffer << flush;
-			printf("FOOD!!! Eats (%s)\n", buffer.c_str());
+			fout << buffer;
+			printf("FOOD!!! Eats (%s)\n", buffer);
 		}
 
 		else if (feeding.read() == IDLE) {

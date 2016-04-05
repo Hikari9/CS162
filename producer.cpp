@@ -63,6 +63,9 @@ int main(int argc, char* args[]) {
 	feeding.write(IDLE);
 	access.signal();
 
+	// have a char array buffer for chunk
+	char chunk[bytes + 1];
+
 	// main loop
 	while (true) {
 
@@ -75,11 +78,12 @@ int main(int argc, char* args[]) {
 		}
 
 		else if (!chunks.empty()) {
-			// feed a new chunk
-			printf("Feeding (%s)...\n", chunks.front().c_str());
-			feeding.write(FEEDING);
-			food.write((char*) chunks.front().c_str());
+			// feed a new chunk, make sure buffer can contain all bytes
+			strcpy(chunk, chunks.front().c_str());
+			printf("Feeding (%s)...\n", chunk);
 
+			feeding.write(FEEDING);
+			food.write(chunk);
 
 			chunks.pop();
 			access.signal();
