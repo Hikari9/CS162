@@ -52,7 +52,7 @@ int main(int argc, char* args[]) {
 	// concurrency members
 	semaphore access(0xACCE55);
 	memory<int> status(0xFEEEED); // (bytesize << 1) | IS_CONSUMING
-	memory<char> food(0xF00000D, bytes);
+	memory<char> food(0xF0000D, bytes);
 
 	puts("File has been read. Preparing for production...");
 
@@ -80,13 +80,15 @@ int main(int argc, char* args[]) {
 		else if (!chunks.empty()) {
 			// feed a new chunk, make sure buffer can contain all bytes
 			memcpy(chunk, chunks.front().c_str(), chunks.front().length());
-			printf("Feeding (%s)...\n", chunk);
 
 			status.write(status.read() ^ 1);
 			food.write(chunk);
-
-			chunks.pop();
 			access.signal();
+
+			printf("Feeding ");
+			cout.write(chunk, chunks.front().length());
+			printf("\n");
+			chunks.pop();
 		}
 
 		else {
