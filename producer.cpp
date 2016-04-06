@@ -1,4 +1,5 @@
 #include <iostream>  // getline, string
+#include <iterator>	 // istream_iterator
 #include <fstream>   // ifstream
 #include <cstdio>    // printf, scanf, perror
 #include <cstdlib>   // srand, atoi 
@@ -25,18 +26,16 @@ int main(int argc, char* args[]) {
 	int sleepTime = argc > 3 ? atoi(args[3]) : 1000;
 
 	// read text file
-	string buffer, line;
 	ifstream fin(file);
 	if (fin.fail()) {
 		puts("File does not exist :(");
 		return 2;
 	}
-	bool first = true;
-	while (getline(fin, line)) {
-		if (first) first = false;
-		else buffer += '\n';
-		buffer += line;
-	}
+
+	// use stream iterator to get line until end of file without loops
+	fin >> noskipws;
+	istream_iterator<char> first(fin), last;
+	string buffer(first, last);
 	fin.close();
 
 	if (buffer.empty()) {
@@ -93,7 +92,6 @@ int main(int argc, char* args[]) {
 
 		else {
 			// no more chunks left
-			status.write(-2);
 			access.signal();
 			puts("No more food to give. Sending an exit signal.");
 			break;

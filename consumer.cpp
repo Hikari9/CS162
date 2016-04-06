@@ -57,7 +57,8 @@ int main(int argc, char* args[]) {
 			first = false;
 		}
 
-		else if (!first && status.read() == 0) {
+		else if (!first && !status.read()) {
+			status.write(-2);
 			access.signal();
 			printf("Producer has no more food. Quitting huhu.\n");
 			break;
