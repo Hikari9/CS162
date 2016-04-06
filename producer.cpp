@@ -51,27 +51,27 @@ int main(int argc, char* args[]) {
 
 	// concurrency members
 	semaphore access(0xACCE55);
-	memory<short> feeding(0xFEEEEED);
+	memory<int> status(0xFEEEED); // (bytesize << 1) | IS_CONSUMING
 	memory<char> food(0xF00000D, bytes);
 
 	puts("File has been read. Preparing for production...");
 
-	enum {IDLE, FEEDING, EXIT};
-
 	// initially idle
+	int buffer_size = buffer.size();
 	access.wait();
-	feeding.write(IDLE);
+	status.write(buffer_size << 1);
 	access.signal();
 
 	// have a char array buffer for chunk
 	char chunk[bytes + 1];
+	chunk[bytes] = '\0';
 
 	// main loop
 	while (true) {
 
 		access.wait();
 
-		if (feeding.read() == FEEDING) {
+		if (status.read() & 1) {
 			// consumer has yet to eat the food
 			access.signal();
 			puts("Waiting for a consumer to eat...");
@@ -79,10 +79,10 @@ int main(int argc, char* args[]) {
 
 		else if (!chunks.empty()) {
 			// feed a new chunk, make sure buffer can contain all bytes
-			strcpy(chunk, chunks.front().c_str());
+			memcpy(chunk, chunks.front().c_str(), chunks.front().length());
 			printf("Feeding (%s)...\n", chunk);
 
-			feeding.write(FEEDING);
+			status.write(status.read() ^ 1);
 			food.write(chunk);
 
 			chunks.pop();
@@ -91,7 +91,7 @@ int main(int argc, char* args[]) {
 
 		else {
 			// no more chunks left
-			feeding.write(EXIT);
+			status.write(-2);
 			access.signal();
 			puts("No more food to give. Sending an exit signal.");
 			break;

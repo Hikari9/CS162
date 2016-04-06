@@ -29,40 +29,47 @@ int main(int argc, char* args[]) {
 
 	// concurrency members
 	semaphore access(0xACCE55);
-	memory<short> feeding(0xFEEEEED);
+	memory<int> status(0xFEEEED); // (bytesize << 1) | IS_CONSUMING
 	memory<char> food(0xF00000D, bytes);
 
 	printf("Preparing for consumption...\n");\
-	enum {IDLE, FEEDING, EXIT};
-
-	// have a buffer for reading
-	char buffer[bytes + 1];
-	buffer[bytes] = '\0';
+	bool first = true;
 
 	// main loop
 	while (true) {
 		access.wait();
-		if (feeding.read() == FEEDING) {
+
+		if (status.read() % 2 == 1) {
 			// there's food for consumer
-			memcpy(buffer, food.data(), bytes);
-			feeding.write(IDLE);
+			int buffer_size = status.read() >> 1;
+			int bytes_to_write = min(buffer_size, bytes);
+
+			cout << "Bytes to write: " << bytes_to_write << endl;
+
+			// debug part
+			printf("FOOD!!! Eats ");
+			cout.write(food.data(), bytes_to_write);
+			printf("\n");
+
+			// actual writing
+			fout.write(food.data(), bytes_to_write);
+			status.write((buffer_size -= bytes_to_write) << 1);
 			access.signal();
 
-			fout << buffer;
-			printf("FOOD!!! Eats (%s)\n", buffer);
+			first = false;
 		}
 
-		else if (feeding.read() == IDLE) {
-			access.signal();
-			printf("Waiting for producer...\n");
-		}
-
-		else { // feeding.read() == EXIT
-			feeding.write(IDLE); // make it idle for the next consumer
+		else if (!first && status.read() == 0) {
 			access.signal();
 			printf("Producer has no more food. Quitting huhu.\n");
 			break;
 		}
+
+		else {
+			access.signal();
+			printf("Waiting for producer...\n");
+		}
+
 		usleep(sleepTime * 1000);
 	}
 
