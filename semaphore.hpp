@@ -7,29 +7,28 @@
 #include <sys/shm.h>
 #include <unistd.h>
 
+
+
 class semaphore {
 private:
-	int id, key;
-	struct sembuf WAIT[2], SIGNAL[1];
+	int _id, _key;
+	static sembuf WAIT[2], SIGNAL[1];
 
 public:
-	semaphore(int key):
-		key(key),
-		id(semget(key, 1, IPC_CREAT | 0666)) {
-			WAIT[0].sem_num = 0;
-    		WAIT[0].sem_op = 0;
-    		WAIT[0].sem_flg = SEM_UNDO;
-			WAIT[1].sem_num = 0;
-			WAIT[1].sem_op = 1;
-			WAIT[1].sem_flg = SEM_UNDO | IPC_NOWAIT;
-			SIGNAL[0].sem_num = 0;
-			SIGNAL[0].sem_op = -1;
-			SIGNAL[0].sem_flg = SEM_UNDO | IPC_NOWAIT;
-		}
-	int getId() const {return id;}
-	int getKey() const {return key;}
-	int wait() const {return semop(id, (sembuf*) WAIT, sizeof(WAIT) / sizeof(sembuf));}
-	int signal() const {return semop(id, (sembuf*) SIGNAL, sizeof(SIGNAL) / sizeof(sembuf));}
+	semaphore(): _id(-1) {}
+	semaphore(int key) {this->key(key);}
+	void key(int new_key) {
+		// set semaphore's key
+		_key = new_key;
+		_id = semget(_key, 1, IPC_CREAT | 0666);
+	}
+	inline int id() const {return _id;}
+	inline int key() const {return _key;}
+	inline int wait() const {return id() == -1 ? -1 : semop(id(), (sembuf*) WAIT, 2);}
+	inline int signal() const {return id() == -1 ? -1 : semop(id(), (sembuf*) SIGNAL, 1);}
 };
+
+sembuf semaphore::WAIT[2] = {{0, 0, SEM_UNDO}, {0, 1, SEM_UNDO | IPC_NOWAIT}};
+sembuf semaphore::SIGNAL[1] = {{0, -1, SEM_UNDO | IPC_NOWAIT}};
 
 #endif /* __INCLUDE_SEMAPHORE__ */
