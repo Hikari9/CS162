@@ -4,6 +4,9 @@
  */
 
 
+#ifndef _INCLUDE_NETWORKING_SOCKET
+#define _INCLUDE_NETWORKING_SOCKET 1
+
 // C++ stl imports
 #include <iostream>
 #include <string>
@@ -29,17 +32,6 @@ namespace networking {
 	// uses the std namespace
 	using namespace std;
 
-	// get the IP Adress string from socket id (sockfd)
-	// @see http://man7.org/linux/man-pages/man2/getpeername.2.html
-	string ip_address(int sockfd) {
-		sockaddr_in addr;
-		socklen_t addr_size = sizeof(sockaddr_in);
-		if (getpeername(sockfd, (struct sockaddr *) &addr, &addr_size) == -1)
-			// return the error
-			return string("ip_address(): ") + strerror(errno);
-		return inet_ntoa(addr.sin_addr);
-	}
-
 	// a wrapper class for creating a network socket
 	// object oriented version with id(), port(), ip_address(), close(), and send()
 	class Socket {
@@ -53,15 +45,17 @@ namespace networking {
 		// getters
 		inline int id() const {return _id;}
 		inline int port() const {return _port;}
-		inline string ip_address() const {return networking::ip_address(id());}
+		inline bool good() const {return id() != 0;}
+		inline string ip_address() const;
 
-		// free socket through destructor, even if on force shutdown
-		~Socket() {
-			::freeaddrinfo(service);
-			::close(id());
-			if (writing) delete writing;
-			if (reading) delete reading;
-		}
+		// constructors and destructors
+		Socket() {}
+		Socket(int port) {this->open(port);}
+		~Socket() {this->close();}
+
+		// openers and closers
+		void open(int port);
+		void close();
 
 		// write information
 		template<typename T> void write(T* info, size_t bytes, int flags = 0) const;
@@ -73,73 +67,94 @@ namespace networking {
 		template<typename T> inline T read() const;
 		inline void read(char*) const;
 
-		// atomic reply getter
-		// template<typename T1, typename T2> T1 reply(T2) const;
-
-
 		// stream-like send (<<) and receive (>>)
 		template<typename T> inline Socket& operator << (const T& info) {write(info); return *this;}
 		template<typename T> inline Socket& operator >> (T& variable) {read(variable); return *this;}
 
-		// construct a socket via port
-		Socket(int port): _port(port) {
+	};
 
-			// set all members of hints to 0
-			memset(&hints, 0, sizeof(hints));
+	// close socket file descriptor and free the service pointer
+	void Socket::close() {
+		if (good()) {
+			::freeaddrinfo(service);
+			::close(id());
+			_id = 0;
+			if (reading) delete reading;
+			if (writing) delete writing;
+		}
+	}
 
-			// specify flags of hints
-			hints.ai_family = AF_UNSPEC; // can also be AF_INET or AF_INET6
-			hints.ai_socktype = SOCK_STREAM; // use stream sockets
-			hints.ai_flags = AI_PASSIVE; // socket will be used to listen to connections passively
+	// open/reopen the port specified
+	void Socket::open(int port) {
+		Socket::close();
+		_port = port;
 
-			char *chrport = new char[10];
-			sprintf(chrport, "%d", port);
+		// set all members of hints to 0
+		memset(&hints, 0, sizeof(hints));
 
-			// get all possible addresses we can use to create a socket
-			// NULL for first argument since we are going to listen for connections
-			int status = getaddrinfo(NULL, chrport, &hints, &service);
-			delete[] chrport;
+		// specify flags of hints
+		hints.ai_family = AF_UNSPEC; // can also be AF_INET or AF_INET6
+		hints.ai_socktype = SOCK_STREAM; // use stream sockets
+		hints.ai_flags = AI_PASSIVE; // socket will be used to listen to connections passively
+
+		char *chrport = new char[10];
+		sprintf(chrport, "%d", port);
+
+		// get all possible addresses we can use to create a socket
+		// NULL for first argument since we are going to listen for connections
+		int status = getaddrinfo(NULL, chrport, &hints, &service);
+		delete[] chrport;
+		
+		if (status != 0) {
+			cerr << "getaddrinfo(): " << gai_strerror(status) << endl;
+			throw this;
+		}
+
+		// go through results of getaddrinfo()
+		// use the first possible address we can use
+		_id = -1;
+		for (info = service; info; info = info->ai_next) {
 			
-			if (status != 0) {
-				cerr << "getaddrinfo(): " << gai_strerror(status) << endl;
-				throw this;
-			}
-
-			// go through results of getaddrinfo()
-			// use the first possible address we can use
-			_id = -1;
-			for (info = service; info; info = info->ai_next) {
-				
-				// attempt to create a socket
-				_id = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
-				if (_id == -1) {
-					perror("socket()");
-					continue;
-				}
-
-				// attempt to bind to a port
-				if (bind(_id, info->ai_addr, info->ai_addrlen) == -1) {
-					perror("bind()");
-					continue;
-				}
-
-				// we have binded a socket
-				break;
-
-			}
-
-			// last check: if socket is really ok (in case loop was never touched)
+			// attempt to create a socket
+			_id = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
 			if (_id == -1) {
-				cerr << "Unable to create a socket!" << endl;
-				throw this;
+				perror("socket()");
+				continue;
 			}
 
-			// setup reading and writing semaphores for mutex
-			this->reading = new semaphore(_id << 1 | 0);
-			this->writing = new semaphore(_id << 1 | 1);
+			// attempt to bind to a port
+			if (bind(_id, info->ai_addr, info->ai_addrlen) == -1) {
+				perror("bind()");
+				continue;
+			}
+
+			// we have binded a socket
+			break;
 
 		}
-	};
+
+		// last check: if socket is really ok (in case loop was never touched)
+		if (_id == -1) {
+			cerr << "Unable to create a socket!" << endl;
+			throw this;
+		}
+
+		// setup reading and writing semaphores for mutex
+		this->reading = new semaphore(_id << 1 | 0);
+		this->writing = new semaphore(_id << 1 | 1);
+	}
+
+	// get the IP Adress string from socket file descriptor (sockfd)
+	// @see http://man7.org/linux/man-pages/man2/getpeername.2.html
+	string Socket::ip_address() const {
+		sockaddr_in addr; // dummy address handler
+		socklen_t addr_size = sizeof(sockaddr_in);
+		if (getpeername(id(), (sockaddr *) &addr, &addr_size) == -1) {
+			perror("ip_address(): ");
+			throw this;
+		}
+		return inet_ntoa(addr.sin_addr);
+	}
 
 	// send information with number of bytes
 	template<typename T>
@@ -285,3 +300,5 @@ namespace networking {
 	}
 
 }
+
+#endif /*_INCLUDE_NETWORKING_SOCKET*/
