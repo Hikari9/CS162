@@ -50,14 +50,16 @@ namespace net {
 		inline string host() const;
 		inline string ip_address() const;
 
-		// constructors and destructors
+		// constructors
 		// if host is NULL, then ip will bind host
 		client(): _id(0) {}
 		client(const char* host, int port): _id(0) {open(host, port);}
 		client(const string& host, int port): _id(0) {open(host, port);}
-		~client() {
-			this->close();
-		}
+
+		// dont make close destructors
+		// always destruct manually to allow copying of client objects
+		// all sockets will close anyway when program ends
+		virtual ~client() {}
 
 		// openers and closers
 		void open(const char* host, int port);
@@ -155,11 +157,12 @@ namespace net {
 	// @see http://man7.org/linux/man-pages/man2/getpeername.2.html
 	string client::ip_address() const {
 		sockaddr_in addr; // dummy address handler
-		socklen_t addr_size = sizeof(sockaddr_in);
-		if (getpeername(id(), (sockaddr *) &addr, &addr_size) == -1) {
+		socklen_t addr_size = sizeof(addr);
+		if (getsockname(id(), (sockaddr *) &addr, &addr_size) == -1) {
 			perror("ip_address(): ");
 			throw this;
 		}
+		printf("%s\n", inet_ntoa(addr.sin_addr));
 		return inet_ntoa(addr.sin_addr);
 	}
 
