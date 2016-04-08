@@ -65,7 +65,7 @@ namespace net {
 		void open(const char* host, int port);
 		inline void open(const string& host, int port) {return open(host.empty() ? NULL : host.c_str(), port);}
 		inline void open(int port) {open(NULL, port);}
-		void close();
+		virtual void close();
 
 		// write information
 		template<typename T> void write(T* info, size_t bytes, int flags = 0) const;
@@ -144,7 +144,7 @@ namespace net {
 
 		// last check: if socket is really ok (in case loop was never touched)
 		if (_id == -1) {
-			cerr << "Unable to create a socket!" << endl;
+			cerr << "client::client(): unable to create a socket!" << endl;
 			throw this;
 		}
 
