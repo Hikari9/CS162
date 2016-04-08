@@ -45,8 +45,8 @@ namespace networking {
 		// getters
 		inline int id() const {return _id;}
 		inline int port() const {return _port;}
-		inline bool good() const {return id() != 0;}
-		inline int ipver() const {return good() ? (info->ai_family == AF_INET ? 4 : 6) : 0;}
+		inline bool is_open() const {return id() != 0;}
+		inline int ipver() const {return is_open() ? (info->ai_family == AF_INET ? 4 : 6) : 0;}
 		inline string host() const;
 		inline string ip_address() const;
 
@@ -81,7 +81,7 @@ namespace networking {
 
 	// close socket file descriptor and free the service pointer
 	void socket::close() {
-		if (good()) {
+		if (is_open()) {
 			::freeaddrinfo(service);
 			::close(id());
 			_id = 0;
