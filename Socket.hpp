@@ -46,15 +46,22 @@ namespace networking {
 		inline int id() const {return _id;}
 		inline int port() const {return _port;}
 		inline bool good() const {return id() != 0;}
+		inline int ipver() const {return good() ? (info->ai_family == AF_INET ? 4 : 6) : 0;}
+		inline string host() const;
 		inline string ip_address() const;
 
 		// constructors and destructors
-		Socket() {}
-		Socket(int port) {this->open(port);}
+		// if host is NULL, then ip will bind host
+		Socket(): _id(0) {}
+		Socket(int port): _id(0) {open(port);}
+		Socket(const char* host, int port): _id(0) {open(host, port);}
+		Socket(const string& host, int port): _id(0) {open(host, port);}
 		~Socket() {this->close();}
 
 		// openers and closers
-		void open(int port);
+		void open(const char* host, int port);
+		inline void open(const string& host, int port) {return open(host.empty() ? NULL : host.c_str(), port);}
+		inline void open(int port) {open(NULL, port);}
 		void close();
 
 		// write information
@@ -85,8 +92,8 @@ namespace networking {
 	}
 
 	// open/reopen the port specified
-	void Socket::open(int port) {
-		Socket::close();
+	void Socket::open(const char* host, int port) {
+		close();
 		_port = port;
 
 		// set all members of hints to 0
@@ -102,7 +109,7 @@ namespace networking {
 
 		// get all possible addresses we can use to create a socket
 		// NULL for first argument since we are going to listen for connections
-		int status = getaddrinfo(NULL, chrport, &hints, &service);
+		int status = getaddrinfo(host, chrport, &hints, &service);
 		delete[] chrport;
 		
 		if (status != 0) {
@@ -118,13 +125,14 @@ namespace networking {
 			// attempt to create a socket
 			_id = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
 			if (_id == -1) {
-				perror("socket()");
+				// perror("socket()");
 				continue;
 			}
 
-			// attempt to bind to a port
-			if (bind(_id, info->ai_addr, info->ai_addrlen) == -1) {
-				perror("bind()");
+			// attempt to bind or connect to a port
+			// if no host, then bind, else connect
+			if ((host ? connect : bind)(_id, info->ai_addr, info->ai_addrlen) == -1) {
+				// perror(host ? "connect()" : "bind()");
 				continue;
 			}
 
@@ -144,6 +152,8 @@ namespace networking {
 		this->writing = new semaphore(_id << 1 | 1);
 	}
 
+	// open synonyms
+
 	// get the IP Adress string from socket file descriptor (sockfd)
 	// @see http://man7.org/linux/man-pages/man2/getpeername.2.html
 	string Socket::ip_address() const {
@@ -154,6 +164,11 @@ namespace networking {
 			throw this;
 		}
 		return inet_ntoa(addr.sin_addr);
+	}
+
+	// synonym: get host name through ip address
+	string Socket::host() const {
+		return ip_address();
 	}
 
 	// send information with number of bytes
