@@ -6,6 +6,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <cerrno>
+#include <map>
 #include <algorithm>
 
 #include <netdb.h>
@@ -17,19 +18,24 @@
 namespace net {
 	using namespace std;
 	// lightweight socket class
-	struct socket {
-		int sock;
-		socket(): sock(::socket(AF_INET, SOCK_STREAM, 0)) {
-			if (sock < 0) {
-				perror("socket::sock()");
-				throw this;
-			}
+	map<int, int> sfd;
+	class socket {
+	private:
+		inline void open_sock() {
+			if (sock >= 0)
+				++sfd[sock];
 		}
-		socket(int sock): sock(sock) {}
+	public:
+		int sock;
+		socket(): sock(::socket(AF_INET, SOCK_STREAM, 0)) {open_sock();}
+		socket(int sock): sock(sock) {open_sock();}
+		socket(const socket& s): sock(s.sock) {open_sock();}
+		socket& operator = (const socket& s) {sock = s.sock; open_sock();}
 		~socket() {close();}
 		inline operator bool() const {return sock >= 0;}
 		virtual void close() {
-			if (*this) {
+			if (*this && --sfd[sock] == 0) {
+				sfd.erase(sock);
 				if (::close(sock) < 0) {
 					perror("socket::close()");
 					throw this;
@@ -41,6 +47,7 @@ namespace net {
 	// lightweight client class
 	struct client : public socket {
 		client(int sock = -1): socket(sock) {}
+		client(const client& c): socket(c.sock) {}
 		client(const string& host, int port): socket() {
 			// get host by name
 			struct hostent *server = gethostbyname(host.c_str());
@@ -101,7 +108,7 @@ namespace net {
 			data.clear();
 			char *buffer = new char[1];
 			while (true) {
-				ssize_t received = ::read(sock, buffer, 1);
+				ssize_t received = ::recv(sock, buffer, 1, 0);
 				if (received < 0) {
 					perror("client::read(string&)");
 					throw this;
@@ -139,6 +146,7 @@ namespace net {
 	struct server : public socket {
 		static const int maxconn;
 		server(): socket(-1) {}
+		server(const server& s): socket(s.sock) {}
 		server(int port, int maxconn = server::maxconn): socket() {
 			// create sock address
 			struct sockaddr_in sad;
@@ -166,10 +174,10 @@ namespace net {
 		}
 		int accept() const {
 			struct sockaddr_in address;
-			socklen_t length;
+			socklen_t length = sizeof(address);
 			int clientsock = ::accept(sock, (sockaddr*) &address, &length);
 			if (clientsock < 0) {
-				perror("server::accept");
+				perror("server::accept()");
 				throw this;
 			}
 			return clientsock;
