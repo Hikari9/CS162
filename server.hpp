@@ -91,6 +91,14 @@ namespace net {
 			}
 		}
 
+		void close() {
+			if (is_open()) {
+				for (int i = 0; i < size(); ++i)
+					(*this)[i].close();
+				server_socket.close();
+			}
+		}
+
 		// accept a client then appends it to this server
 		client& accept() {
 			if (!is_open()) {
@@ -105,20 +113,34 @@ namespace net {
 		// sends a message to all clients in the server
 		template<typename T>
 		void send_all(T message) const {
-			for (int i = 0; i < size(); ++i)
-				if ((*this)[i].is_open())
-					(*this)[i].write(message);
+			// if (fork() == 0) { // TODO: use threads instead of fork()
+				for (int i = 0; i < size(); ++i)
+					if ((*this)[i].is_open()) {
+						cout << "Sending to " << (*this)[i].id() << endl;
+						(*this)[i].write(message);
+					}
+				// exit(0);
+			// }
 		}
 
 		// sends a message to all clients with specified number of bytes 
 		template<typename T>
 		void send_all(T* message, size_t bytes, int flags = 0) const {
-			for (int i = 0; i < size(); ++i)
-				if ((*this)[i].is_open())
-					(*this)[i].write(message, bytes, flags);
+			// if (fork() == 0) { // TODO: use threads instead of fork()
+				for (int i = 0; i < size(); ++i)
+					if ((*this)[i].is_open())
+						(*this)[i].write(message, bytes, flags);
+				// exit(0);
+			// }
 		}
 
 	};
+
+	// output stream overload
+	ostream& operator << (ostream& out, const server& s) {
+		return out << s.host() << ':' << s.port();
+	}
+
 }
 
 #endif /* _INCLUDE_NETWORKING_SERVER */

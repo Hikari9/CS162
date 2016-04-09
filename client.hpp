@@ -35,10 +35,10 @@ namespace net {
 	// a wrapper class for creating a network socket
 	// object oriented version with id(), port(), ip_address(), close(), and send()
 	class client {
-	private:
+	protected:
 		int _port, _id;
-		addrinfo hints, *service, *info;
 		semaphore writing, reading;
+		addrinfo* info;
 
 	public:
 
@@ -50,16 +50,19 @@ namespace net {
 		inline string host() const;
 		inline string ip_address() const;
 
+		// boolean checker, synonymous to is_open()
+		operator bool() const {return is_open();}
+
 		// constructors
 		// if host is NULL, then ip will bind host
 		client(): _id(0) {}
 		client(const char* host, int port): _id(0) {open(host, port);}
 		client(const string& host, int port): _id(0) {open(host, port);}
 
-		// dont make close destructors
-		// always destruct manually to allow copying of client objects
-		// all sockets will close anyway when program ends
-		virtual ~client() {}
+		// note that the socket file descriptor will only close
+		// if the current socket is the last socket
+		// so this is relatively safe, especially for object cloning
+		virtual ~client() {close();}
 
 		// openers and closers
 		void open(const char* host, int port);
@@ -86,8 +89,8 @@ namespace net {
 	// close socket file descriptor and free the service pointer
 	void client::close() {
 		if (is_open()) {
-			::freeaddrinfo(service);
-			::close(id());
+			if (::close(id()) == -1)
+				fprintf(stderr, "[%d] client::close(): %s\n", id(), strerror(errno));
 			_id = 0;
 		}
 	}
@@ -95,6 +98,8 @@ namespace net {
 	// open/reopen the port specified
 	void client::open(const char* host, int port) {
 		close();
+
+		addrinfo hints, *service;
 		_port = port;
 
 		// set all members of hints to 0
@@ -103,7 +108,7 @@ namespace net {
 		// specify flags of hints
 		hints.ai_family = AF_UNSPEC; // can also be AF_INET or AF_INET6
 		hints.ai_socktype = SOCK_STREAM; // use stream sockets
-		hints.ai_flags = AI_PASSIVE; // socket will be used to listen to connections passively
+		hints.ai_flags = host ? AI_CANONNAME : AI_PASSIVE ; // socket will be used to listen to connections passively
 
 		char *chrport = new char[10];
 		sprintf(chrport, "%d", port);
@@ -114,7 +119,7 @@ namespace net {
 		delete[] chrport;
 		
 		if (status != 0) {
-			cerr << "getaddrinfo(): " << gai_strerror(status) << endl;
+			fprintf(stderr, "[%d] client::client()::getaddrinfo(): %s\n", id(), gai_strerror(status));
 			throw this;
 		}
 
@@ -126,31 +131,35 @@ namespace net {
 			// attempt to create a socket
 			_id = ::socket(info->ai_family, info->ai_socktype, info->ai_protocol);
 			if (_id == -1) {
-				// perror("socket()");
+				fprintf(stderr, "[%d] client::client()::socket(): %s\nAttempting another socket...\n", id(), strerror(errno));
+				perror("socket()");
 				continue;
 			}
 
 			// attempt to bind or connect to a port
 			// if no host, then bind, else connect
-			if ((host ? connect : bind)(_id, info->ai_addr, info->ai_addrlen) == -1) {
-				// perror(host ? "connect()" : "bind()");
-				continue;
-			}
+			if ((host ? connect : bind)(_id, info->ai_addr, info->ai_addrlen) == 0)
+				// binded with a socket
+				break;
 
-			// we have binded a socket
-			break;
+			fprintf(stderr, "[%d] client::client()::bind(): %s\nAttempting another socket...\n", id(), strerror(errno));
+			// close socket if failed to load
+			_id = -1;
 
 		}
+		
+		// no longer needed
+		// ::freeaddrinfo(service);
 
 		// last check: if socket is really ok (in case loop was never touched)
 		if (_id == -1) {
-			cerr << "client::client(): unable to create a socket!" << endl;
+			fprintf(stderr, "[] client::client(): unable to create a socket\n");
 			throw this;
 		}
 
 		// update semaphore keys for reading and writing mutex
-		reading.key(id() << 1 | 0);
-		writing.key(id() << 1 | 1);
+		reading.key((id() << 1) | 0);
+		writing.key((id() << 1) | 1);
 	}
 
 	// get the IP Adress string from socket file descriptor (sockfd)
@@ -162,7 +171,6 @@ namespace net {
 			perror("ip_address(): ");
 			throw this;
 		}
-		printf("%s\n", inet_ntoa(addr.sin_addr));
 		return inet_ntoa(addr.sin_addr);
 	}
 
@@ -176,15 +184,14 @@ namespace net {
 	void client::write(T* info, size_t bytes, int flags) const {
 		char* buffer = (char*) info;
 		writing.wait();
-		for (ssize_t sent = 0; sent < bytes; buffer += sent) {
-			ssize_t next = send(id(), (void*) buffer, bytes - sent, flags);
+		for (ssize_t sent = 0, next = 0; sent < bytes; sent += next) {
+			next = send(id(), buffer += next, bytes - sent, flags);
 			if (next == -1) {
 				// an error occured in writing, raise an error message
 				writing.signal();
-				cerr << "client::write(): " << strerror(errno) << endl;
+				fprintf(stderr, "[%d] client::write(): %s\n", id(), strerror(errno));
 				throw this;
 			}
-			sent += next;
 		}
 		writing.signal();
 	}
@@ -218,12 +225,12 @@ namespace net {
 	void client::read(T* buf, size_t bytes, int flags) const {
 		char* buffer = (char*) buf;
 		reading.wait();
-		for (ssize_t received = 0; received < bytes; buffer += received) {
-			ssize_t next = recv(id(), buffer, bytes - received, flags);
+		for (ssize_t received = 0, next = 0; received < bytes; received += next, buffer += next) {
+			next = recv(id(), buf, bytes, flags);
 			if (next == -1) {
 				// an error occured in reading, raise an error message
 				reading.signal();
-				cerr << "client::read(): " << strerror(errno) << endl;
+				fprintf(stderr, "[%d] client::read(): %s\n", id(), strerror(errno));
 				throw this;
 			}
 		}
@@ -246,7 +253,7 @@ namespace net {
 			if (next == -1) {
 				// an error occured in reading, raise an error message
 				reading.signal();
-				cerr << "client::read(): " << strerror(errno);
+				fprintf(stderr, "[%d] client::read(): %s\n", id(), strerror(errno));
 				throw this;
 			}
 			if (next && *(buffer++) == '\0')
@@ -268,7 +275,7 @@ namespace net {
 			if (next == -1) {
 				// an error occured in reading, raise an error message
 				reading.signal();
-				cerr << "client::read(string&): " << strerror(errno) << endl;
+				fprintf(stderr, "[%d] client::read(string&): %s\n", id(), strerror(errno));
 				throw this;
 			}
 			if (next && *temp == '\0')
@@ -283,9 +290,7 @@ namespace net {
 	// @example int x = socket.read<int>();
 	template<typename T>
 	inline T client::read() const {
-		void* info = malloc(sizeof(T));
-		this->read(info);
-		return *(T*) info;
+		T t; read(t); return t;
 	}
 
 	// receive anonymous string
@@ -312,6 +317,11 @@ namespace net {
 		string buffer;
 		this->read(buffer);
 		return buffer.c_str();
+	}
+
+	// output stream overload operator
+	ostream& operator << (ostream& out, const client& c) {
+		return out << c.host() << ':' << c.port();
 	}
 
 }
