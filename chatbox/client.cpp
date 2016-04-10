@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cstdio>
-#include "net.hpp"
+#include "../net.hpp"
 
 using namespace std;
 

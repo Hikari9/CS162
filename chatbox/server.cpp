@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cstdio>
-#include "net.hpp"
-#include "netinfo.hpp"
+#include "../net.hpp"
+#include "../netinfo.hpp"
 
 using namespace std;
 
