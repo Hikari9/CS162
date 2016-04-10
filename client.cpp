@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
 
 	char* host = argv[1];
 	char* port = argv[2];
-	printf("Connecting to %s:%s\n", host, port);
+	printf("Connecting to %s (Port %s)...\n", host, port);
 	// net::client client(host, atoi(port));
 	net::client client;
 	try {

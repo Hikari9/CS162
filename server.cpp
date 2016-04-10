@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdio>
 #include "net.hpp"
+#include "netinfo.hpp"
 
 using namespace std;
 
@@ -14,7 +15,7 @@ int main(int argc, char* argv[]) {
 
 	// create server using port
 	net::server server(atoi(argv[1]));
-	printf("Created server at port %s [%d]\n", argv[1], server.sock);
+	printf("Created server at %s (Port %s) [%d]\n", net::ip_address().c_str(), argv[1], server.sock);
 	printf("Accepting client...\n");
 
 	// accept clients through net::server::accept()

@@ -18,19 +18,16 @@
 namespace net {
 	using namespace std;
 	// lightweight socket class
-	map<int, int> sfd;
 	class socket {
 	private:
-		inline void open_sock() {
-			if (sock >= 0)
-				++sfd[sock];
-		}
+		static map<int, int> sfd;
+		inline void open_sock() {if (sock >= 0) ++sfd[sock];}
 	public:
 		int sock;
 		socket(): sock(::socket(AF_INET, SOCK_STREAM, 0)) {open_sock();}
 		socket(int sock): sock(sock) {open_sock();}
 		socket(const socket& s): sock(s.sock) {open_sock();}
-		socket& operator = (const socket& s) {sock = s.sock; open_sock();}
+		socket& operator = (const socket& s) {sock = s.sock; open_sock(); return *this;}
 		~socket() {close();}
 		inline operator bool() const {return sock >= 0;}
 		virtual void close() {
@@ -195,7 +192,9 @@ namespace net {
 			close();
 		}
 	};
+	// static variable declarations
 	const int server::maxconn = SOMAXCONN;
+	map<int, int> socket::sfd;
 };
 
 #endif /* __INCLUDE_NET__ */
