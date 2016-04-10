@@ -65,13 +65,13 @@ namespace net {
 			}
 		}
 		// operator overloads
-		template<class T> client& operator >> (T& data) const {read(data);}
-		template<class T> client& operator << (T data) const {send(data);}
+		template<class T> client& operator >> (T& data) {read(data); return *this;}
+		template<class T> client& operator << (T data) {send(data); return *this;}
 		template<class T>
 		void send(T* data, size_t bytes) const {
 			for (char* buffer = (char*) data; bytes;) {
 				ssize_t sent = ::write(sock, buffer, bytes);
-				if (sent < 0) {
+				if (sent <= 0) {
 					perror("client::send()");
 					throw this;
 				}
@@ -105,8 +105,8 @@ namespace net {
 			data.clear();
 			char *buffer = new char[1];
 			while (true) {
-				ssize_t received = ::recv(sock, buffer, 1, 0);
-				if (received < 0) {
+				ssize_t received = ::read(sock, buffer, 1);
+				if (received <= 0) {
 					perror("client::read(string&)");
 					throw this;
 				}
