@@ -31,12 +31,14 @@ namespace net {
 		~socket() {if (*this && --sfd[sock] == 0) close();}
 		inline operator bool() const {return sock >= 0;}
 		virtual void close() {
-			sfd.erase(sock);
-			if (::close(sock) < 0) {
-				perror("socket::close()");
-				throw this;
+			if (*this) {
+				sfd.erase(sock);
+				if (::close(sock) < 0) {
+					perror("socket::close()");
+					throw this;
+				}
+				sock = -1;
 			}
-			sock = -1;
 		}
 		bool operator == (const socket& s) const {return sock == s.sock;}
 		bool operator != (const socket& s) const {return sock != s.sock;}
@@ -179,18 +181,6 @@ namespace net {
 				throw this;
 			}
 			return clientsock;
-		}
-		void close() {
-			if (sock >= 0) {
-				if (::close(sock) == -1) {
-					perror("server::close()");
-					throw this;
-				}
-				sock = -1;
-			}
-		}
-		~server() {
-			close();
 		}
 	};
 	// static variable declarations
