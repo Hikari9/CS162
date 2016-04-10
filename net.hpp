@@ -1,3 +1,10 @@
+/**
+ * The net-cpp API implements lightweight socket programming
+ * using unix sockets (linux platform).
+ *
+ * @author Rico Tiongson
+ */
+
 #ifndef __INCLUDE_NET__
 #define __INCLUDE_NET__ 1
 
@@ -17,7 +24,10 @@
 
 namespace net {
 	using namespace std;
-	// lightweight socket class
+	/**
+	 * A lightweight socket wrapper for the UNIX socket.
+	 * Performs automatic garbage collection for multiple copies of the same socket.
+	 */
 	class socket {
 	private:
 		static map<int, int> sfd;
@@ -44,7 +54,11 @@ namespace net {
 		bool operator != (const socket& s) const {return sock != s.sock;}
 		bool operator < (const socket& s) const {return sock < s.sock;}
 	};
-	// lightweight client class
+	/**
+	 * A lightweight socket wrapper for a network client.
+	 * Uses C++ stream-like operations in order to send (<<) or read (>>) data.
+	 * Implicitly converts any data type into bytes on send.
+	 */
 	struct client : public socket {
 		client(int sock = -1): socket(sock) {}
 		client(const client& c): socket(c.sock) {}
@@ -142,7 +156,11 @@ namespace net {
 		strcpy(buffer, stream.c_str());
 		return buffer;
 	}
-	// lightweight server class
+	/**
+	 * A lightweight socket wrapper for a network server.
+	 * Internally calls bind() and listen() on construction.
+	 * You can receive client sockets by calling server::accept().
+	 */
 	struct server : public socket {
 		static const int maxconn;
 		server(): socket(-1) {}

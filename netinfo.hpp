@@ -1,6 +1,10 @@
 /**
- * Contains namespace methods for acquiring network information.
+ * Contains namespace methods for net-cpp to
+ * acquire network information.
+ *
+ * @author Rico Tiongson
  */
+
 
 #ifndef __INCLUDE_NETINFO__
 #define __INCLUDE_NETINFO__ 1
