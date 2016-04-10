@@ -28,18 +28,19 @@ namespace net {
 		socket(int sock): sock(sock) {open_sock();}
 		socket(const socket& s): sock(s.sock) {open_sock();}
 		socket& operator = (const socket& s) {sock = s.sock; open_sock(); return *this;}
-		~socket() {close();}
+		~socket() {if (*this && --sfd[sock] == 0) close();}
 		inline operator bool() const {return sock >= 0;}
 		virtual void close() {
-			if (*this && --sfd[sock] == 0) {
-				sfd.erase(sock);
-				if (::close(sock) < 0) {
-					perror("socket::close()");
-					throw this;
-				}
-				sock = -1;
+			sfd.erase(sock);
+			if (::close(sock) < 0) {
+				perror("socket::close()");
+				throw this;
 			}
+			sock = -1;
 		}
+		bool operator == (const socket& s) const {return sock == s.sock;}
+		bool operator != (const socket& s) const {return sock != s.sock;}
+		bool operator < (const socket& s) const {return sock < s.sock;}
 	};
 	// lightweight client class
 	struct client : public socket {
