@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 #include <unistd.h>
 #include "net.hpp"
 #include "socketstream.hpp"
@@ -9,9 +10,9 @@ int main() {
 	// connect to server
 	net::client client("localhost", 4000);
 
-	if (fork() == 0) {
+	if (fork()) {
 		// message receiver
-		net::isocketstream iss(client.sock);
+		net::isocketstream iss(client.sockfd);
 		string message;
 		while (getline(iss, message))
 			if (!message.empty()) {
@@ -22,7 +23,7 @@ int main() {
 
 	else {
 		// message sender
-		net::osocketstream oss(client.sock);
+		net::osocketstream oss(client.sockfd);
 		string message;
 		cout << "Client: " << flush;
 		while (getline(cin, message)) {

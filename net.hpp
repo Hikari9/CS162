@@ -31,28 +31,28 @@ namespace net {
 	class socket {
 	private:
 		static map<int, int> sfd;
-		inline void open_sock() {if (sock >= 0) ++sfd[sock];}
+		inline void open_sock() {if (sockfd >= 0) ++sfd[sockfd];}
 	public:
-		int sock;
-		socket(): sock(::socket(AF_INET, SOCK_STREAM, 0)) {open_sock();}
-		socket(int sock): sock(sock) {open_sock();}
-		socket(const socket& s): sock(s.sock) {open_sock();}
-		socket& operator = (const socket& s) {sock = s.sock; open_sock(); return *this;}
-		~socket() {if (*this && --sfd[sock] == 0) close();}
-		inline operator bool() const {return sock >= 0;}
+		int sockfd;
+		socket(): sockfd(::socket(AF_INET, SOCK_STREAM, 0)) {open_sock();}
+		socket(int sockfd): sockfd(sockfd) {open_sock();}
+		socket(const socket& s): sockfd(s.sockfd) {open_sock();}
+		socket& operator = (const socket& s) {sockfd = s.sockfd; open_sock(); return *this;}
+		~socket() {if (*this && --sfd[sockfd] == 0) close();}
+		inline operator bool() const {return sockfd >= 0;}
 		virtual void close() {
 			if (*this) {
-				sfd.erase(sock);
-				if (::close(sock) < 0) {
+				sfd.erase(sockfd);
+				if (::close(sockfd) < 0) {
 					perror("socket::close()");
 					throw this;
 				}
-				sock = -1;
+				sockfd = -1;
 			}
 		}
-		bool operator == (const socket& s) const {return sock == s.sock;}
-		bool operator != (const socket& s) const {return sock != s.sock;}
-		bool operator < (const socket& s) const {return sock < s.sock;}
+		bool operator == (const socket& s) const {return sockfd == s.sockfd;}
+		bool operator != (const socket& s) const {return sockfd != s.sockfd;}
+		bool operator < (const socket& s) const {return sockfd < s.sockfd;}
 	};
 	/**
 	 * A lightweight socket wrapper for a network client.
@@ -60,8 +60,8 @@ namespace net {
 	 * Implicitly converts any data type into bytes on send.
 	 */
 	struct client : public socket {
-		client(int sock = -1): socket(sock) {}
-		client(const client& c): socket(c.sock) {}
+		client(int sockfd = -1): socket(sockfd) {}
+		client(const socket& s): socket(s) {}
 		client(const string& host, int port): socket() {
 			// get host by name
 			struct hostent *server = gethostbyname(host.c_str());
@@ -76,7 +76,7 @@ namespace net {
 			memcpy(server->h_addr, &sad.sin_addr.s_addr, server->h_length);
 			sad.sin_port = htons(port);
 			// connect
-			if (connect(sock, (sockaddr*) &sad, sizeof sad) < 0) {
+			if (connect(sockfd, (sockaddr*) &sad, sizeof sad) < 0) {
 				perror("client::connect()");
 				throw this;
 			}
@@ -87,7 +87,7 @@ namespace net {
 		template<class T>
 		void send(T* data, size_t bytes) const {
 			for (char* buffer = (char*) data; bytes;) {
-				ssize_t sent = ::write(sock, buffer, bytes);
+				ssize_t sent = ::write(sockfd, buffer, bytes);
 				if (sent <= 0) {
 					perror("client::send()");
 					throw this;
@@ -103,7 +103,7 @@ namespace net {
 		template<class T>
 		void read(T* data, size_t bytes) const {
 			for (char* buffer = (char*) data; bytes;) {
-				ssize_t received = ::read(sock, buffer, bytes);
+				ssize_t received = ::read(sockfd, buffer, bytes);
 				if (received < 0) {
 					perror("client::read()");
 					throw this;
@@ -122,7 +122,7 @@ namespace net {
 			data.clear();
 			char *buffer = new char[1];
 			while (true) {
-				ssize_t received = ::read(sock, buffer, 1);
+				ssize_t received = ::read(sockfd, buffer, 1);
 				if (received <= 0) {
 					perror("client::read(string&)");
 					throw this;
@@ -134,7 +134,7 @@ namespace net {
 		}
 		inline void read(char buffer[]) const {
 			while (true) {
-				ssize_t received = ::read(sock, buffer, 1);
+				ssize_t received = ::read(sockfd, buffer, 1);
 				if (received < 0) {
 					perror("client::read(char[])");
 					throw this;
@@ -164,9 +164,9 @@ namespace net {
 	struct server : public socket {
 		static const int maxconn;
 		server(): socket(-1) {}
-		server(const server& s): socket(s.sock) {}
+		server(const socket& s): socket(s) {}
 		server(int port, int maxconn = server::maxconn): socket() {
-			// create sock address
+			// create sockfd address
 			struct sockaddr_in sad;
 			memset(&sad, 0, sizeof sad);
 			sad.sin_family = AF_INET;
@@ -174,26 +174,26 @@ namespace net {
 			sad.sin_port = htons(port);
 			{ // unlink used port
 				int enable = 1;
-				if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+				if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
 					perror("server::setsockopt()");
 					throw this;
 				}
 			}
 			// bind to port
-			if (bind(sock, (sockaddr*) &sad, sizeof sad) < 0) {
+			if (bind(sockfd, (sockaddr*) &sad, sizeof sad) < 0) {
 				perror("server::bind()");
 				throw this;
 			}
 			// listen to connections
-			if (listen(sock, maxconn) < 0) {
+			if (listen(sockfd, maxconn) < 0) {
 				perror("server::listen()");
 				throw this;
 			}
 		}
-		int accept() const {
+		net::socket accept() const {
 			struct sockaddr_in address;
 			socklen_t length = sizeof(address);
-			int clientsock = ::accept(sock, (sockaddr*) &address, &length);
+			int clientsock = ::accept(sockfd, (sockaddr*) &address, &length);
 			if (clientsock < 0) {
 				perror("server::accept()");
 				throw this;

@@ -12,9 +12,9 @@ int main() {
 	net::client client = server.accept();
 	cout << "Accepted." << endl;
 	
-	if (fork() == 0) {
+	if (fork()) {
 		// message receiver
-		net::isocketstream iss(client.sock);
+		net::isocketstream iss(client.sockfd);
 		string message;
 		while (getline(iss, message))
 			if (!message.empty()) {
@@ -25,7 +25,7 @@ int main() {
 
 	else {
 		// message sender
-		net::osocketstream oss(client.sock);
+		net::osocketstream oss(client.sockfd);
 		string message;
 		cout << "Server: " << flush;
 		while (getline(cin, message)) {
