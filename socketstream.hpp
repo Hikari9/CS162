@@ -19,11 +19,11 @@
  * it is still recommended to patch this to the other net
  * namespaced headers.
  * 
- * @author 		Rico Tiongson
  * @namespace  	net
+ * @author 		Rico Tiongson
  * @package  	SocketNetworking
  * 
- * @example    // Server and client chat
+ * @example     {a simple server/client console chat implementation}
  * 
  * #include <iostream>				// std::cout, std::cin, std::getline(), std::endl, std::flush
  * #include <unistd.h>				// fork()
@@ -62,6 +62,9 @@
  * }
  * 
  */
+
+#ifndef __INCLUDE_NET_SOCKETSTREAM__
+#define __INCLUDE_NET_SOCKETSTREAM__
 
 #include <streambuf>	// std::streambuf, std::streamsize, std::size_t, std::memmove()
 #include <istream>		// std::istream
@@ -352,3 +355,5 @@ namespace net {
 	};
 
 }
+
+#endif /* __INCLUDE_NET_SOCKETSTREAM__ */
