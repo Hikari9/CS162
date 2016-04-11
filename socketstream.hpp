@@ -1,58 +1,82 @@
+/**
+ * C++ I/O stream classes that wrap a file descriptor (fd).
+ * @author      Rico Tiongson 
+ */
+
+#include <streambuf>
+#include <istream>
+#include <ostream>
 namespace net {
+	using namespace std;
 
-	#include <streambuf>	// std::streambuf, traits_type::to_int_type
-	#include <cstring>		// memmove
-	#include <sys/types.h> 	// ssize_t
-	#include <sys/socket.h>	// recv()
-	using std::size_t;
+	// output file descriptor stream buffer
+	class ofdbuf : public streambuf {
+		protected:
+			int fd;
+		public:
+			ofdbuf(int fd): fd(fd) {}
+			~ofdbuf() {sync();}
+			virtual int overflow(int c) {return c != EOF && write(fd, &c, 1) <= 0 ? EOF : c;}
+			virtual streamsize xsputn (const char* s, streamsize num) {return write(fd, s, num);}
 
-	// @see http://www.mr-edd.co.uk/blog/beginners_guide_streambuf
-	socketbuf::socketbuf(int sockfd, size_t size, size_t pb):
-		sockfd(sockfd),									// the socket file descriptor
-		pback(pb ? pb : (size_t) 1),					// the push back length in bytes
-		bsize(pback + (size < pback ? pback : size)),	// the size of the buffer in bytes
-		buffer(new char[size])							// the actual buffer
-	{
-		char* end = buffer + bsize;
-		setg(end, end, end);
-	}
+		private:
+			ofdbuf(const ofdbuf&);
+			ofdbuf& operator= (const ofdbuf&);
+	};
 
-	/**
-	 * @brief      receive bytes from connected socket
-	 * @return     a std::streambuf::int_type determining the state of the buffer, if it has an underflow or not
-	 */
-	std::streambuf::int_type socketbuf::underflow() {
-		// check if buffer is not yet exhausted
-		if (gptr() < egptr())
-			return traits_type::to_int_type(*gptr());
+	// input file descriptor stream buffer
+	class ifdbuf : public streambuf {
+		protected:
+			int fd, pback, bsize;
+			char* buffer;
+		public:
+			ifdbuf(int fd, int pback=4, int bsize=64): fd(fd), pback(pback), bsize(bsize), buffer(new char[bsize]) {
+				char* start = buffer + pback;
+				setg(start, start, start);
+			}
+			~ifdbuf() {
+				delete[] buffer;
+			}
+		protected:
+			virtual int underflow() {
+				if (gptr() < egptr())
+					return traits_type::to_int_type(*gptr());
+				int pbacks = gptr() - eback();
+				char* start = buffer + pback;
+				if (pbacks > pback)
+					pbacks = pback;
+				if (pbacks)
+					memmove(start - pbacks, gptr() - pbacks, pbacks);
+				int received = read(fd, buffer + pback, 1);
+				if (received <= 0) return EOF;
+				setg(start - pbacks, start, start + received);
+				return traits_type::to_int_type(*gptr());
+			}
+		private:
+			ifdbuf(const ifdbuf&);
+			ifdbuf& operator= (const ifdbuf&);
+	};
 
-		// buffer is exhausted, read data onto buffer
-		char* start = buffer;
-		if (eback() == base) {
-			// make arrangements for putback characters
-			std::memmove(buffer, egptr() - pback, pback);
-			start += pback;
-		}
+	// output file descriptor stream
+	class osocketstream : public ostream {
+		protected:
+			ofdbuf buf;
+		public:
+			osocketstream(int fd): buf(fd), ostream(0) {rdbuf(&buf);}
+		private:
+			osocketstream(const osocketstream&);
+			osocketstream& operator= (const osocketstream&);
+	};
 
-		// start is now the start of the buffer
-		// read from socket onto the buffer
-		ssize_t received = recv(sockfd, start, bsize - (start - base), 0);
-
-		// mark end of file when dialoge is closed
-		if (received == 0)
-			return traits_type::eof();
-
-		// set buffer pointers
-		setg(buffer, start, start + received);
-		return traits_type::to_int_type(*gptr());
-	}
-
-	/**
-	 * @brief      send bytes to connected socket
-	 * @return     a std::streambuf::int_type determining the state of the buffer, if it has an overflow or not
-	 */
-	std::streambuf::int_type socketbuf::overflow() {
-		
-	}
+	// input file descriptor stream
+	class isocketstream : public istream {
+		protected:
+			ifdbuf buf;
+		public:
+			isocketstream(int fd): buf(fd), istream(0) {rdbuf(&buf);}
+		private:
+			isocketstream(const isocketstream&);
+			isocketstream& operator= (const isocketstream&);
+	};
 
 }
