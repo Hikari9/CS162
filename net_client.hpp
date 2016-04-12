@@ -1,21 +1,25 @@
 /**
- * A lightweight socket wrapper for a network client, using low-level
- * POSIX sockets. Extends the net::socket class.
+ * A lightweight socket wrapper for a network client (IPv4), using low-level
+ * POSIX sockets. Extends the net::socket class. The net::client object
+ * supports communication between the server and the client using bytes
+ * using the client::send() and client::read() methods.
  * 
- * The net::client object supports communication between the server and
- * the client using bytes. Although this class is named as a "client"
- * class, this does not in any way mean that the server cannot make use
- * of its functions. In a server-client model, a server can accept
+ * A client calls the connect() method if a server's hostname and a port
+ * are passed in the constructor. But though this class is named as a
+ * "client" class, this does not in any way mean that the server cannot
+ * make use of its functions. In a server-client model, a server can accept
  * multiple clients through the net::server::accept() method, which can
- * be wrapped into the net::client object. On the client side, one can
- * instantiate a net::client object with a host and port constructor
- * to call connect() to a server with such credentials.
+ * be wrapped into the net::client object.
  * 
  * Unlike net::isocketstream and net::osocketstream which stream data as
- * characters, net::client sends data in raw bytes, which buffer-free 
- * thus more efficient. It does so through implicit conversion using
- * C++ templates and the sizeof() compiler function, given that the data
- * has no pointers.
+ * characters, net::client sends and reads data in raw bytes, which is 
+ * buffer-free and more efficient. It does so through implicit conversion
+ * using C++ templates, given that the data sent or received are either
+ * strings, integral data types, or structs without pointers.
+ * 
+ * When net::client sends strings, it also sends a terminating '\0' char
+ * to the receiver, such that strings sent or received can be identified
+ * implicitly without knowing their lengths.
  * 
  * @namespace  	net
  * @author 		Rico Tiongson

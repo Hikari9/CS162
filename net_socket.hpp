@@ -54,13 +54,15 @@ namespace net {
 
 		static std::map<int, int> instances;
 
-	public:
+	protected:
 
 		/**
 		 * the socket file descriptor
 		 */
-
+		
 		int sockfd;
+
+	public:
 
 		/**
 		 * @brief      constructs a new TCP/IPv4 socket as a stream
