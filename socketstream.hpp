@@ -5,19 +5,19 @@
  * The fact that low-end sockets use file descriptors (fd) allow
  * read() and write() capabilities even for non-sockets.
  * 
- * Unlike the "stream-like" behavior of net::client, which sends
+ * Unlike the read()/send() behavior of net::client, which sends
  * data as bytes, socket streams send non-character data types
  * (e.g. short, int, long) as strings, similar to the behavior
- * of std::cout. The performance of net::client is therefore
- * faster than socket streams, however socket streams are able
- * to extend the capabilities of std::istream and std::ostream.
- * Socket streams can use flags and iostream methods from STL,
- * and is capable of buffering unlike the standalone net::client.
+ * of std::cout. Though the performance of net::client bests that
+ * of the socket streams, the latter are able to make use of the
+ * various capabilities of std::istream and std::ostream. Socket
+ * streams can use flags and iostream methods unique to C++ STL.
  * 
- * This header file is standalone. You can wrap it to any file
- * descriptor, which is standard for any C++ compiler. However,
- * it is still recommended to patch this to the other net
- * namespaced headers.
+ * This header file is standalone. Moreover, ou can wrap it to
+ * any kind of file descriptor and it would still work. However,
+ * since the socket streams use send() and recv() instead of 
+ * write() and read(), the use should expect undefined behavior
+ * if the streams are used for regular file descriptors.
  * 
  * @namespace  	net
  * @author 		Rico Tiongson
@@ -28,7 +28,7 @@
  * #include <iostream>				// std::cout, std::cin, std::getline(), std::endl, std::flush
  * #include <unistd.h>				// fork()
  * #incldue "net_server.hpp"		// net::server, net::socket
- * #include "net_client.hpp"		// net::client, net::socket
+ * #include "net_client.hpp"		// net::client
  * #include "net_socketstream.hpp" 	// net::isocketstream, net::osocketstream
  * 
  * using namespace std;
@@ -46,16 +46,16 @@
  * 			// message listener, parent process
  * 			net::isocketstream sockin(socket.sockfd);
  * 			string message;
- * 			while (getline(sockin, message))
+ * 			while (getline(sockin, message)) 	// works like any other std::istream
  * 				if (!message.empty())
  * 					cout << "\rClient: " << message << endl << "Server: " << flush;
  * 		}
  * 		else {
- * 			// message sender, child process, terminate when socket is closed
+ * 			// message sender, child process, terminates when socket is closed
  * 			net::osocketstream sockout(socket.sockfd);
  * 			string message;
  * 			while (getline(cin, message)) {
- * 				sockout << message << endl;
+ * 				sockout << message << endl;		// works like any other std::ostream
  * 				cout << "Server: " << flush;
  * 			}	
  * 		}

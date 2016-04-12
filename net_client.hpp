@@ -26,9 +26,10 @@
 #ifndef __INCLUDE_NET_CLIENT__
 #define __INCLUDE_NET_CLIENT__
 
+#include <cstring>			// std::strlen()
 #include <string>			// std::string
 #include <sys/types.h>		// sockaddr, sockaddr_in
-#include <sys/socket.h>		// connect()
+#include <sys/socket.h>		// connect(), send(), recv()
 #include <netdb.h>			// gethostbyname()
 #include <arpa/inet.h>		// htons()
 #include "net_socket.hpp"	// net::socket, net::socket_exception
@@ -63,97 +64,216 @@ namespace net {
 
 		/**
 		 * @brief      constructs and connects a client socket to a server with a specific host and port
-		 * @param[in]  host  
-		 * @param[in]  port  { parameter_description }
+		 * @param[in]  host  the host server to connect to
+		 * @param[in]  port  the host port to connect to
+		 * @throw      a socket_exception if client cannot connect to host
 		 */
 
-		client(const string& host, int port): socket() throw(socket_exception) {
+		client(const string& host, unsigned short port): socket() {
 			// get host by name
 			struct hostent *server = gethostbyname(host.c_str());
-			if (!server) throw socket_exception("client::gethostbyname()");
+			if (!server)
+				throw socket_exception("client::gethostbyname()");
 			// create socket address
 			struct sockaddr_in sad;
 			memset(&sad, 0, sizeof sad);
 			sad.sin_family = AF_INET;
 			sad.sin_port = htons(port);
 			// connect
-			if (connect(sock, (sockaddr*) &sad, sizeof sad) < 0)
+			if (connect(sockfd, (sockaddr*) &sad, sizeof sad) < 0)
 				throw socket_exception("client::connect()");
 		}
-		// operator overloads
-		// template<class T> client& operator >> (T& data) {read(data); return *this;}
-		// template<class T> client& operator << (T data) {send(data); return *this;}
-		template<class T>
-		void send(T* data, size_t bytes) const {
+
+		/**
+		 * @brief      sends data with specified number of bytes to the connected socket
+		 * @details    closes this client socket if the connection was lost
+		 * @param      data   pointer to the address of data to send
+		 * @param[in]  bytes  number of bytes to send
+		 * @tparam     T      the type of data to send
+		 * @throw      a socket_exception if there was an error in sending
+		 * @return     a reference to this client object, which can be used to detect if the connection was unexpectedly closed or not
+		 */
+
+		template <typename T>
+		client& send(T* data, size_t bytes) throw(socket_exception) {
 			for (char* buffer = (char*) data; bytes;) {
-				ssize_t sent = ::write(sock, buffer, bytes);
-				if (sent <= 0) {
-					perror("client::send()");
-					throw this;
+				ssize_t sent = ::send(sockfd, buffer, bytes, 0);
+				if (sent < 0)
+					throw socket_exception("client::send()");
+				else if (!sent) {
+					close();
+					break;
 				}
 				buffer += sent;
 				bytes -= sent;
 			}
+			return *this;
 		}
-		template<class T> inline void send(T data) const {send(&data, sizeof(data));}
-		inline void send(char data[]) const {send(data, strlen(data) + 1);}
-		inline void send(const char data[]) const {send(data, strlen(data) + 1);}
-		inline void send(string data) const {send(data.c_str());}
-		template<class T>
-		void read(T* data, size_t bytes) const {
+
+		/**
+		 * @brief      implicitly sends data as bytes to the connected socket
+		 * @details    uses the sizeof() function to determine how many bytes of data to send; closes this client socket if the connection was lost
+		 * @param[in]  data  the data to send; must not have any pointers
+		 * @tparam     T     the non-pointer data type to send
+		 * @throw      a socket_exception if there was an error in sending
+		 * @return     a reference to this client object, which can be used to detect if the connection was unexpectedly closed or not
+		 */
+
+		template <typename T>
+		inline client& send(T data) throw(socket_exception) {
+			return send(&data, sizeof(data));
+		}
+
+		/**
+		 * @brief      sends a char array to the connected socket
+		 * @details    closes this client socket if the connection was lost; sends until the terminating character '\0', inclusive
+		 * @param      data  the char array to send; should be a valid string with a terminating '\0' character
+		 * @throw      a socket_exception if there was an error in sending
+		 * @return     a reference to this client object, which can be used to detect if the connection was unexpectedly closed or not
+		 */
+
+		inline client& send(char data[]) throw(socket_exception) {
+			return send(data, strlen(data) + 1);
+		}
+		
+		/**
+		 * @brief      sends a const char array to the connected socket
+		 * @details    closes this client socket if the connection was lost; sends until the terminating character '\0', inclusive
+		 * @param      data  the const char array to send; should be a valid string with a terminating '\0' character
+		 * @throw      a socket_exception if there was an error in sending
+		 * @return     a reference to this client object, which can be used to detect if the connection was unexpectedly closed or not
+		 */
+		
+		inline client& send(const char data[]) throw(socket_exception) {
+			return send(data, strlen(data) + 1);
+		}
+
+		/**
+		 * @brief      sends a string to the connected socket
+		 * @details    closes this client socket if the connection was lost; sends until the terminating character '\0', inclusive
+		 * @param      data  the string to send; should be a valid string with a terminating '\0' character
+		 * @throw      a socket_exception if there was an error in sending
+		 * @return     a reference to this client object, which can be used to detect if the connection was unexpectedly closed or not
+		 */
+		
+		inline client& send(const string& data) throw(socket_exception) {
+			return send(data.c_str(), data.length() + 1);
+		}
+
+		/**
+		 * @brief      receives data with a certain number of bytes from the connected socket
+		 * @details    closes this client socket if the connection was lost
+		 * @param      data   pointer to the address of the receiving data buffer
+		 * @param[in]  bytes  number of bytes to receive
+		 * @tparam     T      the type of data to receive
+		 * @throw      a socket_exception if there was an error in receiving
+		 * @return     a reference to this client object, which can be used to detect if the connection was unexpectedly closed or not
+		 */
+
+		template <typename T>
+		client& read(T* data, size_t bytes) throw(socket_exception) {
 			for (char* buffer = (char*) data; bytes;) {
-				ssize_t received = ::read(sock, buffer, bytes);
-				if (received < 0) {
-					perror("client::read()");
-					throw this;
+				ssize_t received = ::recv(sockfd, buffer, bytes, 0);
+				if (received < 0)
+					throw socket_exception("client::read()");
+				else if (!received) {
+					close();
+					break;
 				}
 				buffer += received;
 				bytes -= received;
 			}
+			return *this;
 		}
-		template<class T> inline void read(T& data) const {read(&data, sizeof(data));}
-		template<class T> inline T read() const {
-			char* buffer = new char[sizeof(T)];
-			read(buffer, sizeof(T));
-			return *(T*) buffer;
+
+		/**
+		 * @brief      implicitly receives data of a certain data type from the connected socket
+		 * @details    uses the sizeof() function to determine how many bytes of data to receive; closes this client socket if the connection was lost
+		 * @param      data   a reference to where to put the received data
+		 * @tparam     T      the type of data to receive
+		 * @throw      a socket_exception if there was an error in receiving
+		 * @return     a reference to this client object, which can be used to detect if the connection was unexpectedly closed or not
+		 */
+		
+		template <typename T>
+		inline client& read(T& data) throw(socket_exception) {
+			return read(&data, sizeof(data));
 		}
-		inline void read(string& data) const {
+		
+		/**
+		 * @brief      implicitly receives an anonymous data type from the connected socket
+		 * @details    uses the sizeof() function to determine how many bytes of data to receive; closes this client socket if the connection was lost
+		 * @tparam     T      the type of data to receive
+		 * @throw      a socket_exception if there was an error in receiving, or if the socket was unexpectedly closed while reading
+		 * @return     the received object of data type T
+		 */
+
+		template <typename T>
+		inline T read() throw(socket_exception) {
+			char buffer[sizeof(T)];
+			if (!read(buffer, sizeof(T)))
+				throw socket_exception("client::read()");
+			return *(T*) buffer; // return in this manner in case T has no default constructor
+		}
+
+		/**
+		 * @brief      receives a string as a char array from the connected socket
+		 * @details    closes this client socket if the connection was lost; receives all characters until a terminating character '\0' was found, exclusive
+		 * @param      data  a pointer to the char array that describes where to put the received string
+		 * @throw      a socket_exception if there was an error in receiving
+		 * @return     a reference to this client object, which can be used to detect if the connection was unexpectedly closed or not
+		 */
+
+		inline client& read(char data[]) throw(socket_exception) {
+			while (read(*data) && *data != '\0')
+				++data;
+			return *this;
+		}
+		
+		/**
+		 * @brief      receives a string from the connected socket
+		 * @details    closes this client socket if the connection was lost; receives all characters until a terminating character '\0' was found, exclusive
+		 * @param      data  a reference to where to put the received string
+		 * @throw      a socket_exception if there was an error in receiving
+		 * @return     a reference to this client object, which can be used to detect if the connection was unexpectedly closed or not
+		 */
+
+		inline client& read(string& data) throw(socket_exception) {
 			data.clear();
-			char *buffer = new char[1];
-			while (true) {
-				ssize_t received = ::read(sock, buffer, 1);
-				if (received <= 0) {
-					perror("client::read(string&)");
-					throw this;
-				}
-				if (*buffer == '\0') break;
-				data.push_back(*buffer);
-			}
-			delete[] buffer;
+			char buffer;
+			while (read(buffer) && buffer != '\0')
+				data.push_back(buffer);
+			return *this;
 		}
-		inline void read(char buffer[]) const {
-			while (true) {
-				ssize_t received = ::read(sock, buffer, 1);
-				if (received < 0) {
-					perror("client::read(char[])");
-					throw this;
-				}
-				if (*(buffer++) == '\0')
-					break;
-			}
-		}
+
 	};
-	template<> inline string client::read<string>() const {
-		string stream;
-		read(stream);
-		return stream;
+
+	/**
+	 * @brief      a template specialization for implicitly receiving an anonymous string from the connected socket
+	 * @throw      a socket_exception if there was an error in receiving, or if the socket was unexpectedly closed while reading
+	 * @return     the received string
+	 */
+
+	template<> inline string client::read<string>() throw(socket_exception) {
+		string data;
+		if (!read(data))
+			throw socket_exception("client::read()");
 	}
-	template<> inline char* client::read<char*>() const {
-		string stream;
-		read(stream);
-		char *buffer = new char[stream.length() + 1];
-		strcpy(buffer, stream.c_str());
+
+	/**
+	 * @brief      a template specialization for implicitly receiving an anonymous c-string from the connected socket
+	 * @return     the received c-string
+	 */
+
+	template<> inline char* client::read<char*>() throw(socket_exception) {
+	 	string data;
+	 	if (!read(data))
+	 		throw socket_exception("client::read()");
+		char *buffer = new char[data.length() + 1];
+		strcpy(buffer, data.c_str());
 		return buffer;
 	}
 
 }
+
+#endif /* __INCLUDE_NET_CLIENT__ */
