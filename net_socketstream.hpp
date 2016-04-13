@@ -246,7 +246,7 @@ namespace net {
 		 * @param[in]  bsize   total buffer size in bytes
 		 */
 
-		isocketbuf(int sockfd, size_t pback = 4, size_t bsize = 64):
+		isocketbuf(int sockfd, size_t pback, size_t bsize):
 			sockfd(sockfd),
 			pback(pback),
 			bsize(bsize),
@@ -344,9 +344,11 @@ namespace net {
 		/**
 		 * @brief      constructs an input socket stream to wrap a socket file descriptor; can be used for regular files
 		 * @param[in]  sockfd  a file descriptor describing the connecting socket
+		 * @param[in]  pback   the number of bytes allocated for putback()
+		 * @param[in]  bsize   the total number of bytes allocated for the buffer
 		 */
 
-		isocketstream(int sockfd): buf(sockfd), istream(0) {rdbuf(&buf);}
+		isocketstream(int sockfd, size_t pback = 4, size_t bsize = 64): buf(sockfd, pback, bsize), istream(0) {rdbuf(&buf);}
 
 	private:
 
