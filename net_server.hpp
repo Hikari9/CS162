@@ -58,15 +58,16 @@ namespace net {
 		 * @details    calls socket(), bind(), and listen() in that order
 		 * @param[in]  port     the port that this server socket will bind to
 		 * @param[in]  maxconn  the backlog parameter on listen(); default value is server::DEFAULT_MAXCONN
+		 * @param[in]  key		the key to the network card ip to bind to [default: NULL]
 		 * @throw      a socket_exception if there server could not bind to the port or listen to connections
 		 */
 
-		explicit server(unsigned short port, int maxconn = server::DEFAULT_MAXCONN): socket() {
+		explicit server(unsigned short port, int maxconn = server::DEFAULT_MAXCONN, const char* key = NULL): socket() {
 			// create socket address
 			struct sockaddr_in sad;
 			memset(&sad, 0, sizeof sad);
 			sad.sin_family = AF_INET; // IPv4 socket
-			sad.sin_addr.s_addr = INADDR_ANY;
+			sad.sin_addr.s_addr = key == NULL ? INADDR_ANY : inet_addr(net::ip_address(sad.sin_family, key));
 			sad.sin_port = htons(port);
 			// unlink used port under a previous unclosed bind()
 			int unbind = 1;
@@ -94,6 +95,17 @@ namespace net {
 			if (clientsock < 0)
 				throw socket_exception("server::accept()");
 			return clientsock;
+		}
+
+		/**
+		 * @brief      gets the ip address of the host socket
+		 * @details    uses net::ip_address() by default instead of socket::ip(), because the latter usually gives a loopback ip
+		 * @throw      a socket_exception if the socket cannot get the host's name
+		 * @return     a const char pointer to the local ip address of the host socket
+		 */
+
+		virtual const char* ip() const throw(socket_exception) {
+			return net::ip_address();
 		}
 
 	};

@@ -8,10 +8,12 @@ using namespace std;
 
 int main() {
 #ifdef SERVER // compile with -DSERVER option
-	cout << "Accepting client..." << endl;
 	net::server server(4000);
+	cout << "Host: " << server.ip() << endl;
+	cout << "Port: " << server.port() << endl;
+	cout << "Accepting client..." << endl;
 	net::socket socket = server.accept();
-	cout << "Client has joined." << endl;
+	cout << "Client " << socket.ip() << ":" << socket.port() << endl;
 	cout << "Server: " << flush;
 	if (fork()) {
 		net::isocketstream sockin(socket);
@@ -30,7 +32,7 @@ int main() {
 #else // CLIENT
 	cout << "Connecting to server..." << endl;
 	net::client socket("localhost", 4000);
-	cout << "Server has joined." << endl;
+	cout << "Connect to server at " << socket.ip() << ":" << socket.port() << " has joined." << endl;
 	cout << "Client: " << flush;
 	if (fork()) {
 		net::isocketstream sockin(socket);

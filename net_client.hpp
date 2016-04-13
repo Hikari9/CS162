@@ -75,13 +75,17 @@ namespace net {
 		client(const string& host, unsigned short port): socket() {
 			// get host by name
 			struct hostent *server = gethostbyname(host.c_str());
-			if (!server)
+			if (!server) {
+				errno = h_errno;
 				throw socket_exception("client::gethostbyname()");
+			}
 			// create socket address
 			struct sockaddr_in sad;
 			memset(&sad, 0, sizeof sad);
 			sad.sin_family = AF_INET;
 			sad.sin_port = htons(port);
+			// setup address structure
+			sad.sin_addr = **(in_addr**) server->h_addr_list;
 			// connect
 			if (connect(sockfd, (sockaddr*) &sad, sizeof sad) < 0)
 				throw socket_exception("client::connect()");
@@ -247,6 +251,34 @@ namespace net {
 			while (read(buffer) && buffer != '\0')
 				data.push_back(buffer);
 			return *this;
+		}
+
+		/**
+		 * @brief      gets the ip address of the peer socket
+		 * @throw      a socket_exception if the socket cannot get the peer's name
+		 * @return     a const char pointer to the local IPv4 address of the peer socket
+		 */
+
+		virtual const char* ip() const throw(socket_exception)  {
+			struct sockaddr_in sad;
+			socklen_t len = sizeof(sad);
+			if (getpeername(sockfd, (sockaddr*) &sad, &len) < 0)
+				throw socket_exception("socket::ip()");
+			return inet_ntoa(sad.sin_addr);
+		}
+
+		/**
+		 * @brief      gets the port of the peer socket
+		 * @throw      a socket_exception if the socket cannot get the peer's port
+		 * @return     an unsigned short determining the local IPv4 port used by the peer socket
+		 */
+
+		virtual unsigned short port() const throw(socket_exception) {
+			struct sockaddr_in sad;
+			socklen_t len = sizeof(sad);
+			if (getpeername(sockfd, (sockaddr*) &sad, &len) < 0)
+				throw socket_exception("client::port()");
+			return ntohs(sad.sin_port);
 		}
 
 	};
