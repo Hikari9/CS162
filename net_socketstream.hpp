@@ -83,6 +83,7 @@
 #include <istream>		// std::istream
 #include <ostream>		// std::ostream
 #include <sys/socket.h>		// send(), recv()
+#include <unistd.h>		// dup()
 
 namespace net {
 
@@ -110,7 +111,7 @@ namespace net {
 		 * @param[in]  sockfd   a file descriptor describing the connecting socket
 		 */
 		
-		osocketbuf(int sockfd): sockfd(sockfd) {}
+		osocketbuf(int sockfd): sockfd(dup(sockfd)) {}
 
 		/**
 		 * @brief      syncs then destructs the output socket buffer object
@@ -118,6 +119,7 @@ namespace net {
 		
 		~osocketbuf() {
 			sync();
+			::close(sockfd);
 		}
 		
 		/**
@@ -247,7 +249,7 @@ namespace net {
 		 */
 
 		isocketbuf(int sockfd, size_t pback, size_t bsize):
-			sockfd(sockfd),
+			sockfd(dup(sockfd)),
 			pback(pback),
 			bsize(bsize),
 			buffer(new char[bsize]) {
@@ -261,6 +263,7 @@ namespace net {
 
 		~isocketbuf() {
 			delete[] buffer;
+			::close(sockfd);
 		}
 
 	protected:
