@@ -293,6 +293,7 @@ namespace net {
 		string data;
 		if (!read(data))
 			throw socket_exception("client::read()");
+		return data;
 	}
 
 	/**
