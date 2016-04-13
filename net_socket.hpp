@@ -17,8 +17,8 @@
 #ifndef __INCLUDE_NET_SOCKET__
 #define __INCLUDE_NET_SOCKET__
 
-#include <string.h>		// strerror()
-#include <errno.h>		// std::errno
+#include <cstring>		// strerror()
+#include <cerrno>		// std::errno
 #include <string>		// std::string
 #include <map>			// std::map
 #include <exception>	// std::exception
@@ -35,9 +35,9 @@ namespace net {
 
 	class socket_exception : public std::exception {
 	public:
-		const char* function;
-		socket_exception(const char* function): function(function) {}
-		virtual const char* what() const throw() {return ((std::string(function) + ": ") + strerror(errno)).c_str();}
+		const char* linker;
+		socket_exception(const char* linker): linker(linker) {}
+		virtual const char* what() const throw() {return (std::string(linker) + ": " + strerror(errno)).c_str();}
 	};
 
 	/**
@@ -49,7 +49,7 @@ namespace net {
 	private:
 
 		/**
-		 * a map of the number of socket instances for each socket file descriptor
+		 * @brief      a map of the number of socket instances for each socket file descriptor
 		 */
 
 		static std::map<int, int> instances;
@@ -57,7 +57,7 @@ namespace net {
 	protected:
 
 		/**
-		 * the socket file descriptor
+		 * @brief      the socket file descriptor
 		 */
 		
 		int sockfd;
@@ -138,19 +138,23 @@ namespace net {
 
 		/**
 		 * @brief      forcefully closes this socket
+		 * @details    originally threw a socket_exception if the current sockfd was originally opened
+		 *             removed the error check because socket::good() can address this problem
 		 */
 
 		virtual void close() {
 			if (good()) {
 				instances.erase(sockfd);
 				::close(sockfd);
+				// if (::close(sockfd) < 0)
+					// throw socket_exception("socket::close()");
 			}
 			sockfd = -1;
 		}
 
 		/**
 		 * @brief      checks if this socket's file descriptor is less than another's file descriptor
-		 * @param[in]  sock  the socket to copare with
+		 * @param[in]  sock  the socket to compare with
 		 * @return     true if this socket is less than the other
 		 */
 	
@@ -160,6 +164,7 @@ namespace net {
 
 		/**
 		 * @brief      gets the local IP address of the host socket
+		 * @throw      a socket_exception if the socket cannot get the host's name
 		 * @return     a const char pointer to the local IPv4 address of the host socket
 		 */
 
@@ -173,6 +178,7 @@ namespace net {
 
 		/**
 		 * @brief      gets the local port of the host socket
+		 * @throw      a socket_exception if the socket cannot get the host's port
 		 * @return     an unsigned short determining the local IPv4 port used by the host socket
 		 */
 
@@ -187,6 +193,7 @@ namespace net {
 		/**
 		 * @brief      gets the foreign IP address of a communicating socket
 		 * @details    typically used to determine the IP address of a socket returned by server::accept()
+		 * @throw      a socket_exception if the socket cannot get the peer's name
 		 * @return     a const char pointer to the local IPv4 address of the communicating socket
 		 */
 
@@ -194,13 +201,14 @@ namespace net {
 			struct sockaddr_in sad;
 			socklen_t len = sizeof(sad);
 			if (getpeername(sockfd, (sockaddr*) &sad, &len) < 0)
-				throw socket_exception("socket::foreign::ip_address()");
+				throw socket_exception("socket::foreign_ip_address()");
 			return inet_ntoa(sad.sin_addr);
 		}
 
 		/**
 		 * @brief      gets the foreign port of a communicating socket
 		 * @details    typically used to determine the port used by a socket returned by server::accept()
+		 * @throw      a socket_exception if the socket cannot get the peer's port
 		 * @return     an unsigned short determining the local IPv4 port used by a communicating socket
 		 */
 

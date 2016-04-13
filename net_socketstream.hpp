@@ -14,10 +14,11 @@
  * Socket streams can use flags and iostream methods from STL,
  * and is capable of buffering unlike the standalone net::client.
  * 
- * This header file is standalone. You can wrap it to any file
- * descriptor, which is standard for any C++ compiler. However,
- * it is still recommended to patch this to the other net
- * namespaced headers.
+ * This is a STANDALONE header file. You can use it without
+ * importing net::socket or the other headers. You can wrap it
+ * to any file descriptor, as long as it is standard for your C++
+ * compiler. However, it is still recommended to patch this with 
+ * net::socket for easier socket creation.
  * 
  * @author 		Rico Tiongson
  * @namespace  	net

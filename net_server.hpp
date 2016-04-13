@@ -23,49 +23,82 @@
  * @package  	SocketNetworking
  */
 
+#include "net_socket.hpp"
+
 namespace net {
+
+	/**
+	 * @brief      a lightweight wrapper class for a server socket
+	 */
+
 	class server : public socket {
-		static const int maxconn;
+	public:
+
+		/**
+		 * the default maximum length to which the queue of pending connections for the socket may grow
+		 */
+
+		static const int DEFAULT_MAXCONN = SOMAXCONN;
+
+		/**
+		 * @brief      constructs an empty server socket
+		 */
+
 		server(): socket(-1) {}
-		server(const socket& sock): socket(sock.sockfd) {}
-		explicit server(unsigned short port, int maxconn = server::maxconn): socket() {
-			// create sock address
+		
+		/**
+		 * @brief      constructs and copies the file descriptor of another server socket
+		 * @param[in]  sock  the server socket to copy; must already be bound in order to accept connections
+		 */
+
+		server(const server& sock): socket(sock) {}
+
+		/**
+		 * @brief      constructs a server socket and binds it to a specific port in the local host
+		 * @details    calls socket(), bind(), and listen() in that order
+		 * @param[in]  port     the port that this server socket will bind to
+		 * @param[in]  maxconn  the backlog parameter on listen(); default value is server::DEFAULT_MAXCONN
+		 * @throw      a socket_exception if there server could not bind to the port or listen to connections
+		 */
+
+		explicit server(unsigned short port, int maxconn = server::DEFAULT_MAXCONN): socket() {
+			// create socket address
 			struct sockaddr_in sad;
 			memset(&sad, 0, sizeof sad);
-			sad.sin_family = AF_INET;
+			sad.sin_family = AF_INET; // IPv4 socket
 			sad.sin_addr.s_addr = INADDR_ANY;
 			sad.sin_port = htons(port);
-			{
-				// unlink used port
-				int enable = 1;
-				if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
-					perror("server::setsockopt()");
-					throw this;
-				}
-			}
+			// unlink used port under a previous unclosed bind()
+			int unbind = 1;
+			if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &unbind, sizeof(unbind)) < 0)
+				throw socket_exception("server::setsockopt()");
 			// bind to port
-			if (bind(sock, (sockaddr*) &sad, sizeof sad) < 0) {
-				perror("server::bind()");
-				throw this;
-			}
+			if (bind(sockfd, (sockaddr*) &sad, sizeof sad) < 0)
+				throw socket_exception("server::bind()");
 			// listen to connections
-			if (listen(sock, maxconn) < 0) {
-				perror("server::listen()");
-				throw this;
-			}
+			if (listen(sockfd, maxconn) < 0)
+				throw socket_exception("server::listen()");
 		}
-		int accept() const {
+
+		/**
+		 * @brief      accepts a connecting socket
+		 * @details    calls accept() and wraps a socket file descriptor to a socket object
+		 * @throw      a socket_exception if there was a problem in accepting the client socket
+		 * @return     a socket referring to the accepted client
+		 */
+
+		socket accept() const throw(socket_exception) {
 			struct sockaddr_in address;
 			socklen_t length = sizeof(address);
-			int clientsock = ::accept(sock, (sockaddr*) &address, &length);
-			if (clientsock < 0) {
-				perror("server::accept()");
-				throw this;
-			}
+			int clientsock = ::accept(sockfd, (sockaddr*) &address, &length);
+			if (clientsock < 0)
+				throw socket_exception("server::accept()");
 			return clientsock;
 		}
+
 	};
-	// static variable declarations
-	const int server::maxconn = SOMAXCONN;
+
+	// define the static constant so it can be used in the namespace
+	const int server::DEFAULT_MAXCONN;
 
 }

@@ -38,7 +38,6 @@
 #include <arpa/inet.h>		// htons()
 #include "net_socket.hpp"	// net::socket, net::socket_exception
 
-
 namespace net {
 
 	using namespace std;
@@ -59,7 +58,7 @@ namespace net {
 		client(int sockfd = -1): socket(sockfd) {}
 
 		/**
-		 * @brief      constructs and copies another socket as a client socket
+		 * @brief      constructs and wraps another socket as a client socket
 		 * @details    does not call connect()
 		 * @param[in]  sock		another socket
 		 */
