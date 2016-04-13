@@ -168,13 +168,13 @@ namespace net {
 		 * @return     a const char pointer to the local IPv4 address of the host socket
 		 */
 
-		const char* local_ip_address() const throw(socket_exception)  {
-			struct sockaddr_in sad;
-			socklen_t len = sizeof(sad);
-			if (getsockname(sockfd, (sockaddr*) &sad, &len) < 0)
-				throw socket_exception("socket::local_ip_address()");
-			return inet_ntoa(sad.sin_addr);
-		}
+		// const char* local_ip_address() const throw(socket_exception)  {
+		// 	struct sockaddr_in sad;
+		// 	socklen_t len = sizeof(sad);
+		// 	if (getsockname(sockfd, (sockaddr*) &sad, &len) < 0)
+		// 		throw socket_exception("socket::local_ip_address()");
+		// 	return inet_ntoa(sad.sin_addr);
+		// }
 
 		/**
 		 * @brief      gets the local port of the host socket
@@ -182,13 +182,13 @@ namespace net {
 		 * @return     an unsigned short determining the local IPv4 port used by the host socket
 		 */
 
-		unsigned short local_port() const throw(socket_exception) {
-			struct sockaddr_in sad;
-			socklen_t len = sizeof(sad);
-			if (getsockname(sockfd, (sockaddr*) &sad, &len) < 0)
-				throw socket_exception("socket::local_ip_address()");
-			return ntohs(sad.sin_port);
-		}
+		// unsigned short local_port() const throw(socket_exception) {
+		// 	struct sockaddr_in sad;
+		// 	socklen_t len = sizeof(sad);
+		// 	if (getsockname(sockfd, (sockaddr*) &sad, &len) < 0)
+		// 		throw socket_exception("socket::local_ip_address()");
+		// 	return ntohs(sad.sin_port);
+		// }
 
 		/**
 		 * @brief      gets the foreign IP address of a communicating socket
@@ -197,13 +197,13 @@ namespace net {
 		 * @return     a const char pointer to the local IPv4 address of the communicating socket
 		 */
 
-		const char* foreign_ip_address() const throw(socket_exception) {
-			struct sockaddr_in sad;
-			socklen_t len = sizeof(sad);
-			if (getpeername(sockfd, (sockaddr*) &sad, &len) < 0)
-				throw socket_exception("socket::foreign_ip_address()");
-			return inet_ntoa(sad.sin_addr);
-		}
+		// const char* foreign_ip_address() const throw(socket_exception) {
+		// 	struct sockaddr_in sad;
+		// 	socklen_t len = sizeof(sad);
+		// 	if (getpeername(sockfd, (sockaddr*) &sad, &len) < 0)
+		// 		throw socket_exception("socket::foreign_ip_address()");
+		// 	return inet_ntoa(sad.sin_addr);
+		// }
 
 		/**
 		 * @brief      gets the foreign port of a communicating socket
@@ -212,13 +212,13 @@ namespace net {
 		 * @return     an unsigned short determining the local IPv4 port used by a communicating socket
 		 */
 
-		unsigned short foreign_port() const throw(socket_exception) {
-			struct sockaddr_in sad;
-			socklen_t len = sizeof(sad);
-			if (getpeername(sockfd, (sockaddr*) &sad, &len) < 0)
-				throw socket_exception("socket::foreign::ip_address()");
-			return ntohs(sad.sin_port);
-		}
+		// unsigned short foreign_port() const throw(socket_exception) {
+		// 	struct sockaddr_in sad;
+		// 	socklen_t len = sizeof(sad);
+		// 	if (getpeername(sockfd, (sockaddr*) &sad, &len) < 0)
+		// 		throw socket_exception("socket::foreign::ip_address()");
+		// 	return ntohs(sad.sin_port);
+		// }
 
 	};
 
