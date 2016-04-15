@@ -15,11 +15,11 @@ int main() {
 	try {
 		// try connecting to google
 		cout << "Connecting to " << host << "..." << endl;
-		long ping = clock();
+		long ping_start = clock();
 		net::client google(host, http);
-		long delta = clock() - ping;
+		long ping_time = clock() - ping_start;
 		cout << "Connected to " << host << " (" << google.ip() << ")" << endl;
-		cout << "Ping time: " << delta << "ms" << endl;
+		cout << "Ping time: " << ping_time << "ms" << endl;
 		net::isocketstream sockin(google, 0, 1024); // 0 bytes for putback, 1024 bytes for buffer
 		net::osocketstream sockout(google);
 		cout << "Search: ";

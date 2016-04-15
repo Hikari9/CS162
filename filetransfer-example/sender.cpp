@@ -1,5 +1,5 @@
 /**
- * Send a file to a server through network.
+ * Send a file to a server through network by sending the number of bytes first.
  */
 #include <iostream>
 #include <fstream>

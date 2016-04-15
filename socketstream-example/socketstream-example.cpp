@@ -1,3 +1,4 @@
+// a two-way server-client chat example using socket streams 
 #include <iostream>					// std::cout, std::cin, std::getline(), std::endl, std::flush
 #include <unistd.h>					// fork()
 #include "../net_server.hpp"		// net::server, net::socket

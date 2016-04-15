@@ -1,3 +1,4 @@
+// multiple chat linux client, for CS 162 Lab 10 requirement
 // compile: g++ chat.cpp -o chat 
 #include <iostream>
 #include <cerrno>

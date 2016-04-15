@@ -1,5 +1,5 @@
 /**
- * Receive a file from a client through the network.
+ * Receive a file from a client through the network, until when server closes
  */
 #include <iostream>
 #include <fstream>

@@ -1,3 +1,4 @@
+// multiple chat linux server, for CS 162 Lab 10 requirement
 // compile: g++ server.cpp -pthread -o server
 #include <iostream>
 #include <sstream>

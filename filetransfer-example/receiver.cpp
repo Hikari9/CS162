@@ -1,5 +1,5 @@
 /**
- * Receive a file from a client through the network.
+ * Receive a file from a client through the network by receiving the number of bytes first.
  */
 #include <iostream>
 #include <fstream>

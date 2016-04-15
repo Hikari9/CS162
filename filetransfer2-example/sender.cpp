@@ -1,5 +1,5 @@
 /**
- * Send a file to a server through network, and send an EOF byte at the end
+ * Send a file to a server through network, without sending the number of bytes
  */
 #include <iostream>
 #include <fstream>
@@ -48,6 +48,5 @@ int main(int argc, char* argv[]) {
 	file.close();
 	client.send(buffer, bytes); // send the file
 	delete[] buffer;
-	// receive a ping back that all is ok
 	printf("Uploaded %s (size=%.3fKB)\n", filename, bytes / 1000.0f);
 }
