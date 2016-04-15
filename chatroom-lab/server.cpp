@@ -29,7 +29,10 @@ void send_all(string message, net::client sender = -1) {
 }
 
 // thread that listens to clients
-void* client_listener(void* args);
+void* client_listener(void*);
+
+// thread that listens to server input
+void* server_listener(void*);
 
 int main(int argc, char* argv[]) {
 	// check validity of arguments
@@ -46,6 +49,15 @@ int main(int argc, char* argv[]) {
 	printf("Server: created server at %s (port %s) [sockfd=%d]\n", server.ip(), argv[1], sockfd);
 	// maintain a a pthread vector that will be destructed on exit
 	vector<pthread_t> pthreads;
+	// have an input process that accepts input from the server
+	{
+		int error;
+		pthreads.push_back(pthread_t());
+		if (error = pthread_create(&pthreads.back(), NULL, &server_listener, NULL)) {
+			errno = error;
+			perror("pthread_create()");
+		}
+	}
 	// indefinitely accept clients
 	while (true) {
 		printf("Server: accepting clients...\n");
@@ -60,6 +72,17 @@ int main(int argc, char* argv[]) {
 			perror("pthread_create()");
 		}
 		sleep(1);
+	}
+}
+
+// thread that listens to server input
+void* server_listener(void*) {
+	string message;
+	while (getline(cin, message)) {
+		if (message == "@exit") {
+			send_all("Server commenced shutdown");
+			exit(EXIT_SUCCESS);
+		}
 	}
 }
 
@@ -92,12 +115,16 @@ void* client_listener(void* args) {
 				{
 					// send a message to everyone that client has joined
 					ostringstream oss;
-					oss << name << " entered the room (sockfd=" << (int) client << ")";
+					oss << name << " entered the room {{ " << label << " }}";
 					send_all(oss.str());
 				}
 				// indefinitely listen to messages
 				string message;
 				while (client.read(message)) {
+					if (message == "@exit") {
+						client.close();
+						break;
+					}
 					if (!message.empty()) {
 						ostringstream oss;
 						send_all(label + ": " + message, client);
@@ -114,7 +141,7 @@ void* client_listener(void* args) {
 				}
 			}
 			ostringstream oss;
-			oss << name << " has left the room (sockfd=" << (int) client << ")";
+			oss << name << " has left the room {{ " << label << " }}";
 			send_all(oss.str());
 		}		
 	}
