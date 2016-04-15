@@ -247,7 +247,7 @@ namespace net {
 	/**
 	 * @brief      ask for the current network card's ip address
 	 * @param[in]  ipver      [default: AF_INET] the version of the ip address to return; can be AF_INET or AF_INET6
-	 * @param[in]  key        [default: NULL] the key of the network card used to get the ip address; if NULL is passed, it will return the first match in the list ["eth0", "wlan", "lo"] in that order
+	 * @param[in]  key        [default: NULL] the key of the network card used to get the ip address; if NULL is passed, it will return the first match in the list ["eth#", "wlan", "lo"] in that order
 	 * @param[in]  use_cache  [default: true] a boolean describing whether cache should be used or not; updates current cache if set to false
 	 * @return     a c-string referring to the IP address of the host computer
 	 */
@@ -255,12 +255,20 @@ namespace net {
 	const char* ip_address(int ipver = AF_INET, const char* key = NULL, bool use_cache = true) {
 		const map<string, string>& driver = ip_all(ipver, use_cache);
 		if (key == NULL) {
-			if (driver.count("eth0"))
-				return driver.find("eth0")->second.c_str();
-			if (driver.count("wlan0"))
-				return driver.find("wlan0")->second.c_str();
+			// try each combination of eth# and wlan# up to digit 9
+			char key_buf[6];
+			for (char digit = '0'; digit <= '9'; ++digit) {
+				sprintf(key_buf, "eth%c", digit);
+				if (driver.count(key_buf))
+					return driver.find(key_buf)->second.c_str();
+				sprintf(key_buf, "wlan%c", digit);
+				if (driver.count(key_buf))
+					return driver.find(key_buf)->second.c_str();
+			}
+			// lastly, try loopback
 			if (driver.count("lo"))
 				return driver.find("lo")->second.c_str();
+			// no network card
 			return NULL;
 		}
 		return driver.count(key) ? driver.find(key)->second.c_str() : "";
