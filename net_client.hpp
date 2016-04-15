@@ -85,7 +85,7 @@ namespace net {
 			sad.sin_family = AF_INET;
 			sad.sin_port = htons(port);
 			// setup address structure
-			sad.sin_addr = **(in_addr**) server->h_addr_list;
+			memcpy(&sad.sin_addr.s_addr, server->h_addr, server->h_length);
 			// connect
 			if (connect(sockfd, (sockaddr*) &sad, sizeof sad) < 0)
 				throw socket_exception("client::connect()");
