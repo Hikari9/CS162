@@ -30,7 +30,7 @@ int main() {
 			if (isspace(search[i]))
 				search[i] = '+';
 		// make the main query to google through API
-		sockout << "GET /ajax/services/search/web?v=1.0&q=" << search << " HTTP/1.1" << endl;
+		sockout << "GET /ajax/services/search/web?v=1.1&q=" << search << " HTTP/1.1" << endl;
 		sockout << "Host: " << host << endl;
 		sockout << "Connection: Close" << endl << endl;
 		// get properties of the connection as a map

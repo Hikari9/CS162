@@ -16,7 +16,8 @@ using namespace std;
 map<string, net::client> clients;
 
 // send a message to all clients
-void send_all(const string& message, net::client sender = -1) {
+void send_all(string message, net::client sender = -1) {
+	message = "[" + message + "]";
 	cout << message << endl;
 	for (map<string, net::client>::iterator it = clients.begin(); it != clients.end(); ++it) {
 		net::client& subscriber = it->second;
@@ -40,7 +41,7 @@ int main(int argc, char* argv[]) {
 	net::server server(port, 4);
 	int sockfd = (int) server;	// we can get sockfd of server
 	printf("Server: created server at %s (port %s) [sockfd=%d]\n", server.ip(), argv[1], sockfd);
-	// maintain a recyclable vector of pthreads
+	// maintain a a pthread vector that will be destructed on exit
 	vector<pthread_t> pthreads;
 	// indefinitely accept clients
 	while (true) {
@@ -63,7 +64,7 @@ int main(int argc, char* argv[]) {
 void* client_listener(void* args) {
 	net::client client = *(int*) &args;
 	const char* ip = client.ip();
-	printf("Server (thread): acquiring name of client [%s]...\n", ip);
+	printf("Server: acquiring name of client [%s]...\n", ip);
 	string name = client.read<string>();
 	if (client.good()) {
 		// check if name already exists
@@ -75,7 +76,7 @@ void* client_listener(void* args) {
 			clients[name] = client;
 			// send an ok ping
 			client.send(true);
-			send_all("Server: " + name + " entered the room");
+			send_all(name + " entered the room");
 			string message;
 			while (client.read(message))
 				if (!message.empty())
@@ -83,5 +84,5 @@ void* client_listener(void* args) {
 		}
 	}
 	clients.erase(name);
-	printf("Server (thread): closing client [%s]\n", ip);
+	send_all(name + " has left the room");
 }
