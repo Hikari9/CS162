@@ -67,7 +67,7 @@ namespace net {
 			struct sockaddr_in sad;
 			memset(&sad, 0, sizeof sad);
 			sad.sin_family = AF_INET; // IPv4 socket
-			sad.sin_addr.s_addr = key == NULL ? INADDR_ANY : inet_addr(host);
+			sad.sin_addr.s_addr = host == NULL ? INADDR_ANY : inet_addr(host);
 			sad.sin_port = htons(port);
 			// unlink used port under a previous unclosed bind()
 			int unbind = 1;
