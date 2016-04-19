@@ -24,6 +24,7 @@
 #define __INCLUDE_NET_SOCKET__
 
 #include <cstring>		// strerror()
+#include <cstdio>		// std::sprintf()
 #include <cerrno>		// std::errno
 #include <string>		// std::string
 #include <map>			// std::map
