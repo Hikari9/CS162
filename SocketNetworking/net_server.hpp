@@ -58,16 +58,16 @@ namespace net {
 		 * @details    calls socket(), bind(), and listen() in that order
 		 * @param[in]  port     the port that this server socket will bind to
 		 * @param[in]  maxconn  the backlog parameter on listen(); default value is server::DEFAULT_MAXCONN
-		 * @param[in]  key		the key to the network card ip to bind to [default: NULL]
+		 * @param[in]  host		the specific IP address the network card should to bind to; will bind to any local port when NULL [default: NULL]
 		 * @throw      a socket_exception if there server could not bind to the port or listen to connections
 		 */
 
-		explicit server(unsigned short port, int maxconn = server::DEFAULT_MAXCONN, const char* key = NULL): socket() {
+		explicit server(unsigned short port, int maxconn = server::DEFAULT_MAXCONN, const char* host = NULL): socket() {
 			// create socket address
 			struct sockaddr_in sad;
 			memset(&sad, 0, sizeof sad);
 			sad.sin_family = AF_INET; // IPv4 socket
-			sad.sin_addr.s_addr = key == NULL ? INADDR_ANY : inet_addr(net::ip_address(sad.sin_family, key));
+			sad.sin_addr.s_addr = key == NULL ? INADDR_ANY : inet_addr(host);
 			sad.sin_port = htons(port);
 			// unlink used port under a previous unclosed bind()
 			int unbind = 1;
