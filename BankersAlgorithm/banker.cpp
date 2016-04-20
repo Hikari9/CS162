@@ -10,7 +10,6 @@ using namespace std;
 // data types
 
 struct process;
-enum state {UNSAFE, SAFE};
 typedef vector<int> resource;
 typedef deque<process> process_queue;
 
