@@ -12,6 +12,13 @@
 using namespace std;
 
 // get character not until '\n'
+
+net::client client;
+char *name;
+string inbuffer;
+int sockfd;
+#define label "(" << sockfd << ")[" << name << "]: "
+
 char getch(){
     char buf=0;
     struct termios old={0};
@@ -31,18 +38,14 @@ char getch(){
     if(tcsetattr(0, TCSADRAIN, &old)<0)
         perror ("tcsetattr ~ICANON");
     if (buf == 127) {
-        printf("\b ");
+        if (!inbuffer.empty())
+		printf("\b ");
         buf = '\b';
     }
-    printf("%c", buf);
+    if (buf != '\b' || !inbuffer.empty())
+	printf("%c", buf);
     return buf;
 }
-
-net::client client;
-char *name;
-string inbuffer;
-int sockfd;
-#define label "(" << sockfd << ")[" << name << "]: "
 
 void* listener(void* args) {
 	string message;
@@ -90,8 +93,10 @@ int main(int argc, char* argv[]) {
 	}
 	while (client && !feof(stdin)) {
 		char c = getch();
-		if (c == '\b' && !inbuffer.empty())
-			inbuffer.erase(inbuffer.length() - 1);
+		if (c == '\b') {
+			if (!inbuffer.empty())
+				inbuffer.erase(inbuffer.length() - 1);
+		}
 		else if (c == '\n') {
 			if (!inbuffer.empty()) {
 				client.send(inbuffer);
