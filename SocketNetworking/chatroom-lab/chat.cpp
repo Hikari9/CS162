@@ -4,10 +4,55 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <pthread.h>
+#include <termios.h>  // getch()
 #include <unistd.h>
 #include "../net_client.hpp"
 
 using namespace std;
+
+// get character not until '\n'
+char getch(){
+    char buf=0;
+    struct termios old={0};
+    fflush(stdout);
+    if(tcgetattr(0, &old)<0)
+        perror("tcsetattr()");
+    old.c_lflag&=~ICANON;
+    old.c_lflag&=~ECHO;
+    old.c_cc[VMIN]=1;
+    old.c_cc[VTIME]=0;
+    if(tcsetattr(0, TCSANOW, &old)<0)
+        perror("tcsetattr ICANON");
+    if(read(0,&buf,1)<0)
+        perror("read()");
+    old.c_lflag|=ICANON;
+    old.c_lflag|=ECHO;
+    if(tcsetattr(0, TCSADRAIN, &old)<0)
+        perror ("tcsetattr ~ICANON");
+    if (buf == 127) {
+        printf("\b ");
+        buf = '\b';
+    }
+    printf("%c", buf);
+    return buf;
+}
+
+net::client client;
+char *name;
+string inbuffer;
+int sockfd;
+#define label "(" << sockfd << ")[" << name << "]: "
+
+void* listener(void* args) {
+	string message;
+	while (client.read(message)) {
+		// pad some spaces
+		int len = inbuffer.length();
+		cout << string(len, '\b') << string(len, ' ') << '\r' << message;
+		cout << '\n' << label << inbuffer << flush;
+	}
+}
 
 int main(int argc, char* argv[]) {
 	if (argc < 4) {
@@ -17,9 +62,8 @@ int main(int argc, char* argv[]) {
 	}
 	char* host = argv[1];
 	char* port = argv[2];
-	char* name = argv[3];
+	name = argv[3];
 	// try connecting to the server indefinitely with a 5 second timeout
-	net::client client;
 	while (!client) {
 		printf("Connecting to server at %s:%s...\n", host, port);
 		try {client = net::client(host, atoi(port));}
@@ -36,23 +80,28 @@ int main(int argc, char* argv[]) {
 		return EXIT_FAILURE;
 	}
 	// get your socket number from the server
-	int sockfd;
 	client.read(sockfd);
-	#define label "(" << sockfd << ")[" << name << "]: "
 	// MAIN CHAT: create a listening process
-	if (fork()) {
-		// child process, receive messages from server
-		string message;
-		while (client.read(message))
-			cout << '\r' << message << '\n' << label << flush;
-	} else {
-		// parent process, send messages through console input
-		string message;
-		while (getline(cin, message)) {
-			client.send(message);
-			if (message == "@exit")
-				break;
-			cout << label << flush;
+	int error;
+	pthread_t thread;
+	if (error = pthread_create(&thread, NULL, &listener, NULL)) {
+		errno = error;
+		perror("pthread_create()");
+	}
+	while (client && !feof(stdin)) {
+		char c = getch();
+		if (c == '\b' && !inbuffer.empty())
+			inbuffer.erase(inbuffer.length() - 1);
+		else if (c == '\n') {
+			if (!inbuffer.empty()) {
+				client.send(inbuffer);
+				if (inbuffer == "@exit")
+					break;
+				inbuffer.clear();
+				cout << label << flush;
+			}
 		}
+		else 
+			inbuffer.push_back(c);
 	}
 }
