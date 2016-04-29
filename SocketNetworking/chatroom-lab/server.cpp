@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
 	// create server using port, listen up to max_connections
 	net::server server(port, max_connections);
 	int sockfd = (int) server;	// we can get sockfd of server
-	printf("Server: created server at %s (port %s) [sockfd=%d]\n", server.ip(), argv[1], sockfd);
+	printf("Server: created server at %s (port %d) [sockfd=%d]\n", server.ip(), port, sockfd);
 	// maintain a a pthread vector that will be destructed on exit
 	vector<pthread_t> pthreads;
 	// have an input process that accepts input from the server
