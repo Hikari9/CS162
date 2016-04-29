@@ -42,7 +42,7 @@ char getch(){
 		printf("\b ");
         buf = '\b';
     }
-    if (buf != '\b' || !inbuffer.empty())
+    if ((buf != '\n' && buf != '\b') || !inbuffer.empty())
 	printf("%c", buf);
     return buf;
 }
@@ -55,6 +55,8 @@ void* listener(void* args) {
 		cout << string(len, '\b') << string(len, ' ') << '\r' << message;
 		cout << '\n' << label << inbuffer << flush;
 	}
+	cout << '\r' << string(50, ' ') << endl;
+	exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char* argv[]) {
