@@ -50,6 +50,8 @@ int main(int argc, char* argv[]) {
 		string message;
 		while (getline(cin, message)) {
 			client.send(message);
+			if (message == "@exit")
+				break;
 			cout << label << flush;
 		}
 	}
