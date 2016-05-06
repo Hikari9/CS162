@@ -1,9 +1,6 @@
-#include <iostream>
-#include <cstdio>
-#include <cstring>
-#include <vector>
-#include <queue>
-#include <algorithm>
+#include <iostream>		// cin, cout
+#include <vector>		// resource, vector
+#include <deque>		// process_queue
 
 using namespace std;
 
@@ -17,8 +14,8 @@ typedef deque<process> process_queue;
 
 struct process {
 	int id;
-	resource has, need;
-	process(int m): has(m), need(m) {}
+	resource held, need;
+	process(int m): held(m), need(m) {}
 };
 
 // check if resources are available for use
@@ -52,10 +49,15 @@ vector<int> banker(process_queue pro, resource pool) {
 
 		if (available(current.need, pool)) {
 
-			// allocate needs, then immediately return
 			order.push_back(current.id);
+			
+			// allocate needs, then immediately return (omit code because redundant)
+			// pool[i] -= current.need[i];
+			// pool[i] += current.need[i];
+
+			// release all held resources
 			for (int i = 0; i < pool.size(); ++i)
-				pool[i] += current.has[i];
+				pool[i] += current.held[i];
 
 			// reset process count
 			checked = 0;
@@ -86,7 +88,7 @@ int main() {
 		for (int i = 0; i < n; ++i) pro[i].id = i + 1;
 		for (int i = 0; i < n; ++i)
 			for (int j = 0; j < m; ++j)
-				cin >> pro[i].has[j];
+				cin >> pro[i].held[j];
 		for (int i = 0; i < n; ++i)
 			for (int j = 0; j < m; ++j)
 				cin >> pro[i].need[j];
