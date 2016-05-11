@@ -1,108 +1,101 @@
 #include <iostream>		// cin, cout
-#include <vector>		// resource, vector
-#include <deque>		// process_queue
+#include <queue>		// queue<int>
 
 using namespace std;
-
-// data types
-
-struct process;
-typedef vector<int> resource;
-typedef deque<process> process_queue;
-
-// process class
-
-struct process {
-	int id;
-	resource held, need;
-	process(int m): held(m), need(m) {}
-};
+const int N = 1000; // max for O(n^2)
+int t, n, m;
+int need[N][N], held[N][N], pool[N];
+int order[N];
 
 // check if resources are available for use
-
-bool available(resource need, resource pool) {
-	for (int i = 0; i < need.size(); ++i)
-		if (need[i] > pool[i])
+bool available(int id) {
+	for (int i = 0; i < m; ++i)
+		if (need[id][i] > pool[i])
 			return false;
 	return true;
 }
 
 /**
  * @brief       performs banker's algorithm for process ordering to avoid deadlocks
- * @details     enqueued implementation of banker's algorithm O(n^2)
- * @param[in]	pro		a queue of processes that want to allocate resources
- * @param[in]	pool	a list of available resources
- * @returns     a list of process IDs indicating the preferred order of process execution
+ * @details     enqueued implementation of banker's algorithm
+ * @returns     the number of processes ordered
  *              will have a size less than the number of processes if a deadlock occurs
  */
 
-vector<int> banker(process_queue pro, resource pool) {
-
-	vector<int> order;
-	int checked = 0; // counter to check if the queued processes have repeated
-
-	while (checked < pro.size()) {
-
-		// try processing the frontmost process
-		process current = pro.front();
-		pro.pop_front();
-
-		if (available(current.need, pool)) {
-
-			order.push_back(current.id);
-			
-			// allocate needs, then immediately return (omit code because redundant)
-			// pool[i] -= current.need[i];
-			// pool[i] += current.need[i];
-
-			// release all held resources
-			for (int i = 0; i < pool.size(); ++i)
-				pool[i] += current.held[i];
-
-			// reset process count
+int banker() {
+	int order_size = 0;
+	int checked = 0;
+	queue<int> q;
+	for (int i = 0; i < n; ++i)
+		q.push(i);
+	while (checked < q.size()) {
+		int cur = q.front(); q.pop();
+		if (available(cur)) {
+			order[order_size++] = cur;
+			for (int j = 0; j < m; ++j)
+				pool[j] += held[cur][j];
 			checked = 0;
-
 		} else {
-
-			// cannot allocate, repush process to the back
-			pro.push_back(current);
+			q.push(cur);
 			checked++;
-
 		}
-
 	}
-
-	return order;
+	return order_size;
 }
 
 int main() {
-	int t, n, m;
 	cin >> t;
 	while (t--) {
 		cin >> n >> m;
-		resource pool(n);
-		process_queue pro(n, process(m));
-
 		// input
 		for (int i = 0; i < m; ++i) cin >> pool[i];
-		for (int i = 0; i < n; ++i) pro[i].id = i + 1;
 		for (int i = 0; i < n; ++i)
 			for (int j = 0; j < m; ++j)
-				cin >> pro[i].held[j];
+				cin >> held[i][j];
 		for (int i = 0; i < n; ++i)
 			for (int j = 0; j < m; ++j)
-				cin >> pro[i].need[j];
-
+				cin >> need[i][j];
 		// get ordering from banker's algo
-		vector<int> order = banker(pro, pool);
-
-		// SAFE or UNSAFE?
-		if (order.size() == n) cout << "SAFE";
+		int size = banker();
+		if (size == n) cout << "SAFE";
 		else  /* incomplete */ cout << "UNSAFE";
 		
-		// output ordering from banker's algo
-		for (int i = 0; i < order.size(); ++i)
-			cout << (i ? "-" : " ") << order[i];
+		// output ordering from banker's algo, 1-based
+		for (int i = 0; i < size; ++i)
+			cout << (i ? "-" : " ") << order[i] + 1;
 		cout << endl;
 	}
 }
+
+
+/**
+ * @brief       performs banker's algorithm for process ordering to avoid deadlocks
+ * @details     brute force implementation of banker's algorithm
+ * @returns     the number of processes ordered
+ *              will have a size less than the number of processes if a deadlock occurs
+ *
+
+#include <vector>
+int banker_brute() {
+	int order_size = 0;
+	vector<int> v;
+	for (int i = 0; i < n; ++i)
+		v.push_back(i);
+	bool changed = true;
+	while (changed) {
+		changed = false;
+		for (int i = 0; i < v.size(); ++i) {
+			int cur = v[i];
+			if (available(cur)) {
+				order[order_size++] = cur;
+				for (int j = 0; j < m; ++j)
+					pool[j] += held[cur][j];
+				v.erase(v.begin() + (i--));
+				changed = true;
+			}
+		}
+	}
+	return order_size;	
+}
+
+*/
