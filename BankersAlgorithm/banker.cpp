@@ -1,5 +1,6 @@
 #include <iostream>		// cin, cout
 #include <queue>		// queue<int>
+#include <cmath>		// math
 
 using namespace std;
 const int N = 1000; // max for O(n^2)
